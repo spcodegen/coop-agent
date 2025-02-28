@@ -10,11 +10,8 @@ class CreateCovernoteScreen extends StatefulWidget {
 class _nameState extends State<CreateCovernoteScreen> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Covernote Screen'),
-      ),
-      body: const Center(
+    return const Scaffold(
+      body: Center(
         child: Text(
           'Create Covernote Screen',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),

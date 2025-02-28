@@ -10,10 +10,20 @@ class Homescreen extends StatefulWidget {
 }
 
 class _HomescreenState extends State<Homescreen> {
+  // Default selected screen
+  Widget _selectedScreen = const CovernoteListScreen();
+
+  void _setScreen(Widget screen) {
+    setState(() {
+      _selectedScreen = screen;
+    });
+    Navigator.pop(context); // Close the drawer after selection
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Home Page')),
+      appBar: AppBar(title: const Text('Dashboard')),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -28,56 +38,17 @@ class _HomescreenState extends State<Homescreen> {
             ListTile(
               leading: const Icon(Icons.note_add),
               title: const Text('Create Covernote'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const CreateCovernoteScreen()),
-                );
-              },
+              onTap: () => _setScreen(const CreateCovernoteScreen()),
             ),
             ListTile(
               leading: const Icon(Icons.list),
               title: const Text('Covernote List'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const CovernoteListScreen()),
-                );
-              },
+              onTap: () => _setScreen(const CovernoteListScreen()),
             ),
           ],
         ),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const CreateCovernoteScreen()),
-                );
-              },
-              child: const Text('Create Covernote'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const CovernoteListScreen()),
-                );
-              },
-              child: const Text('Covernote List'),
-            ),
-          ],
-        ),
-      ),
+      body: _selectedScreen,
     );
   }
 }
