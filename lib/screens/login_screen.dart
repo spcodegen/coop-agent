@@ -1,5 +1,9 @@
-import 'package:coop_agent/screens/HomeScreen.dart';
+import 'package:coop_agent/models/user_model.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:coop_agent/screens/HomeScreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,9 +14,72 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController _userNameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final url = Uri.parse('http://172.21.112.149:8080/user/authenticate');
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "username": _userNameController.text,
+          "password": _passwordController.text,
+        }),
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        String token = data['token']; // Assuming API returns a token
+        UserModel user = UserModel.fromJson(data['user']);
+
+        print("✅ Token Before: $token");
+
+        // ✅ Check if token is not null or empty before saving
+        if (token.isNotEmpty) {
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', token);
+          print("✅ Token Saved: $token");
+
+          // Navigate to HomeScreen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const Homescreen()),
+          );
+        } else {
+          setState(() {
+            _errorMessage = "Invalid response from server";
+          });
+        }
+      } else {
+        setState(() {
+          _errorMessage = "Invalid username or password";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = "Failed to connect to server";
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -21,25 +88,21 @@ class _LoginScreenState extends State<LoginScreen> {
           // Background Image
           Positioned.fill(
             child: Image.asset(
-              "assets/images/loginback.png", // Replace with your image path
-              fit: BoxFit.cover, // Ensures the image covers the entire screen
+              "assets/images/loginback.png", // Ensure image exists in assets
+              fit: BoxFit.cover,
             ),
           ),
-          //Login Screen Content
+          // Login Screen Content
           Scaffold(
             backgroundColor: Colors.transparent,
             body: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 40,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(
-                      height: 75,
-                    ),
+                    const SizedBox(height: 75),
                     Image.asset(
                       "assets/images/logo.png",
                       fit: BoxFit.cover,
@@ -53,9 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(
-                      height: 16,
-                    ),
+                    const SizedBox(height: 16),
                     Form(
                       key: _formKey,
                       child: Padding(
@@ -65,31 +126,26 @@ class _LoginScreenState extends State<LoginScreen> {
                             _buildTextField(
                               controller: _userNameController,
                               labelText: 'User Name',
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter User Name';
-                                }
-                                return null;
-                              },
-                              isNumeric: true,
+                              validator: (value) => value!.isEmpty
+                                  ? 'Please enter User Name'
+                                  : null,
                             ),
-                            const SizedBox(
-                              height: 14,
-                            ),
+                            const SizedBox(height: 14),
                             _buildTextField(
                               controller: _passwordController,
                               obscureText: true,
                               labelText: 'Password',
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter Password';
-                                }
-                                return null;
-                              },
+                              validator: (value) => value!.isEmpty
+                                  ? 'Please enter Password'
+                                  : null,
                             ),
-                            const SizedBox(
-                              height: 25,
-                            ),
+                            const SizedBox(height: 10),
+                            if (_errorMessage != null)
+                              Text(
+                                _errorMessage!,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            const SizedBox(height: 25),
                             SizedBox(
                               width: 280,
                               height: 50,
@@ -103,24 +159,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                   shadowColor:
                                       const Color.fromARGB(255, 6, 6, 6),
                                 ),
-                                onPressed: () {
-                                  // Navigate to Home Page and allow back navigation
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) =>
-                                            const Homescreen()),
-                                  );
-                                },
-                                child: const Text(
-                                  'Login Now',
-                                  style: TextStyle(
-                                    color: Color.fromARGB(255, 0, 0, 0),
-                                    //fontFamily: 'Georgia',
-                                    fontSize: 20.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                onPressed: _isLoading ? null : _login,
+                                child: _isLoading
+                                    ? const CircularProgressIndicator(
+                                        color: Colors.black)
+                                    : const Text(
+                                        'Login Now',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 20.0,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                               ),
                             ),
                           ],
@@ -141,14 +191,12 @@ class _LoginScreenState extends State<LoginScreen> {
     required TextEditingController controller,
     required String labelText,
     required String? Function(String?) validator,
-    bool isNumeric = false,
     bool obscureText = false,
   }) {
     return SizedBox(
       width: 400,
       child: TextFormField(
         controller: controller,
-        keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
         decoration: InputDecoration(
           labelText: labelText,
           labelStyle: const TextStyle(
@@ -156,10 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
             fontSize: 14,
           ),
           border: OutlineInputBorder(
-            borderSide: const BorderSide(
-              color: Colors.white,
-              width: 1,
-            ),
+            borderSide: const BorderSide(color: Colors.white, width: 1),
             borderRadius: BorderRadius.circular(15),
           ),
           contentPadding: const EdgeInsets.all(15),
