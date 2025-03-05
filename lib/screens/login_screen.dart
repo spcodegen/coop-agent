@@ -50,12 +50,16 @@ class _LoginScreenState extends State<LoginScreen> {
         UserModel user = UserModel.fromJson(data['user']);
 
         print("✅ Token Before: $token");
+        print(user.username);
 
         // ✅ Check if token is not null or empty before saving
         if (token.isNotEmpty) {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setString('token', token);
+          await prefs.setString('user', jsonEncode(user.toJson()));
+
           print("✅ Token Saved: $token");
+          print("✅ User Saved: ${jsonEncode(user.toJson())}");
 
           // Navigate to HomeScreen
           Navigator.pushReplacement(
