@@ -46,19 +46,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        String token = data['token']; // Assuming API returns a token
-        UserModel user = UserModel.fromJson(data['user']);
+        String token = data['token']; // Extract token
+        UserModel user = UserModel.fromJson(data['user']); // Extract user data
 
         print("✅ Token Before: $token");
-        print(user.username);
+        print("✅ Username: ${user.username}");
+        print(
+            "✅ Branch Description: ${user.salesPersonDetails.slcBranchDescription}");
 
-        // ✅ Check if token is not null or empty before saving
         if (token.isNotEmpty) {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setString('token', token);
           await prefs.setString('user', jsonEncode(user.toJson()));
+          await prefs.setString('slcBranchDescription',
+              user.salesPersonDetails.slcBranchDescription);
 
           print("✅ Token Saved: $token");
+          print(
+              "✅ Branch Description Saved: ${prefs.getString('slcBranchDescription')}");
           print("✅ User Saved: ${jsonEncode(user.toJson())}");
 
           // Navigate to HomeScreen

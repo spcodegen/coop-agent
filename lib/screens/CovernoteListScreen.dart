@@ -17,26 +17,13 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
   List<Map<String, dynamic>> _covernoteList = [];
   bool _isLoading = false;
   String? _errorMessage;
-  String? _branchDescription; // Store slcBranchDescription
 
   @override
   void initState() {
     super.initState();
-    _loadBranchDescription();
+    _fetchCovernoteData();
   }
 
-  // ✅ Fetch `slcBranchDescription` from SharedPreferences
-  Future<void> _loadBranchDescription() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _branchDescription =
-          prefs.getString('SlCbranchdescription') ?? "HEAD OFFICE";
-    });
-
-    _fetchCovernoteData(); // Fetch data after retrieving branch description
-  }
-
-  // ✅ Fetch Cover Note Data
   Future<void> _fetchCovernoteData() async {
     setState(() {
       _isLoading = true;
@@ -46,6 +33,7 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
+      String? branchName = prefs.getString('slcBranchDescription');
 
       if (token == null) {
         setState(() {
@@ -55,11 +43,21 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
         return;
       }
 
-      final url = Uri.parse(
-          'http://172.21.112.149:8080/cover_note_details/getAllFrom30Days?branchName=$_branchDescription');
+      String baseUrl = 'http://172.21.112.149:8080/cover_note_details';
+      String url;
+
+      if (_covernoteController.text.isNotEmpty) {
+        url =
+            '$baseUrl/filterCoverNoteDetails?coverNoteNo=${_covernoteController.text}&branchName=$branchName';
+      } else if (_nicController.text.isNotEmpty) {
+        url =
+            '$baseUrl/filterCoverNoteDetails?branchName=$branchName&nicNo=${_nicController.text}';
+      } else {
+        url = '$baseUrl/getAllFrom30Days?branchName=$branchName';
+      }
 
       final response = await http.get(
-        url,
+        Uri.parse(url),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
@@ -103,35 +101,18 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // 📌 Background Image
           Positioned.fill(
             child: Image.asset(
               "assets/images/loginback.png",
               fit: BoxFit.cover,
             ),
           ),
-
-          // 📌 Content with semi-transparent overlay
           Positioned.fill(
             child: Container(
-              color:
-                  Colors.black.withOpacity(0.6), // Dark overlay for readability
+              color: Colors.black.withOpacity(0.6),
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  // ✅ Display Branch Description
-                  // Text(
-                  //   "Branch: $_branchDescription",
-                  //   style: const TextStyle(
-                  //     fontSize: 18,
-                  //     color: Colors.white,
-                  //     fontWeight: FontWeight.bold,
-                  //   ),
-                  // ),
-
-                  const SizedBox(height: 10),
-
-                  // Search Fields
                   Row(
                     children: [
                       Expanded(
@@ -173,18 +154,12 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // Loading Indicator
                   if (_isLoading) const CircularProgressIndicator(),
-
-                  // Error Message
                   if (_errorMessage != null)
                     Text(
                       _errorMessage!,
                       style: const TextStyle(color: Colors.red, fontSize: 16),
                     ),
-
-                  // Data Table
                   if (!_isLoading && _covernoteList.isNotEmpty)
                     Expanded(
                       child: SingleChildScrollView(
