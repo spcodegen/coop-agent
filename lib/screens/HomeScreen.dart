@@ -1,5 +1,5 @@
-import 'package:coop_agent/screens/CovernoteListScreen.dart';
-import 'package:coop_agent/screens/CreateCovernoteScreen.dart';
+import 'package:coop_agent/screens/salesPerson/CovernoteListScreen.dart';
+import 'package:coop_agent/screens/salesPerson/CreateCovernoteScreen.dart';
 import 'package:coop_agent/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';

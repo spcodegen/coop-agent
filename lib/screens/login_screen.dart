@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:coop_agent/screens/HomeScreen.dart';
+import 'package:coop_agent/screens/HomeScreenAdmin.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -46,13 +47,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        String token = data['token']; // Extract token
-        UserModel user = UserModel.fromJson(data['user']); // Extract user data
+        String token = data['token'];
+        UserModel user = UserModel.fromJson(data['user']);
 
-        print("✅ Token Before: $token");
-        print("✅ Username: ${user.username}");
-        print(
-            "✅ Branch Description: ${user.salesPersonDetails.slcBranchDescription}");
+        String role = user.roles.isNotEmpty ? user.roles.first.name : '';
 
         if (token.isNotEmpty) {
           SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -61,15 +59,11 @@ class _LoginScreenState extends State<LoginScreen> {
           await prefs.setString('slcBranchDescription',
               user.salesPersonDetails.slcBranchDescription);
 
-          print("✅ Token Saved: $token");
-          print(
-              "✅ Branch Description Saved: ${prefs.getString('slcBranchDescription')}");
-          print("✅ User Saved: ${jsonEncode(user.toJson())}");
-
-          // Navigate to HomeScreen
+          Widget nextScreen =
+              role == 'ADMIN' ? const Homescreenadmin() : const Homescreen();
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const Homescreen()),
+            MaterialPageRoute(builder: (context) => nextScreen),
           );
         } else {
           setState(() {
@@ -94,14 +88,12 @@ class _LoginScreenState extends State<LoginScreen> {
     return SafeArea(
       child: Stack(
         children: [
-          // Background Image
           Positioned.fill(
             child: Image.asset(
-              "assets/images/loginback.png", // Ensure image exists in assets
+              "assets/images/loginback.png",
               fit: BoxFit.cover,
             ),
           ),
-          // Login Screen Content
           Scaffold(
             backgroundColor: Colors.transparent,
             body: SingleChildScrollView(
