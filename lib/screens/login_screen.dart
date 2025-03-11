@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:coop_agent/screens/HomeScreen.dart';
-import 'package:coop_agent/screens/HomeScreenAdmin.dart';
+import 'package:coop_agent/screens/admin/HomeScreenAdmin.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -49,6 +49,8 @@ class _LoginScreenState extends State<LoginScreen> {
         final data = jsonDecode(response.body);
         String token = data['token'];
         UserModel user = UserModel.fromJson(data['user']);
+
+        print(token);
 
         String role = user.roles.isNotEmpty ? user.roles.first.name : '';
 

@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
 
 class CovernoteListScreen extends StatefulWidget {
   const CovernoteListScreen({super.key});
@@ -92,6 +95,48 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
     } finally {
       setState(() {
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _downloadAndOpenPDF(String coverNoteNo) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+
+    if (token == null) {
+      setState(() {
+        _errorMessage = "No token found. Please login again.";
+      });
+      return;
+    }
+
+    String pdfUrl =
+        "http://172.21.112.149:8080/cover_note_details/openCoverNotePDF/$coverNoteNo";
+
+    try {
+      final response = await http.get(
+        Uri.parse(pdfUrl),
+        headers: {
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final bytes = response.bodyBytes;
+        final directory = await getApplicationDocumentsDirectory();
+        final file = File('${directory.path}/$coverNoteNo.pdf');
+        await file.writeAsBytes(bytes);
+
+        // Open the downloaded PDF
+        await OpenFile.open(file.path);
+      } else {
+        setState(() {
+          _errorMessage = "Failed to open PDF.";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = "Error opening PDF: $e";
       });
     }
   }
@@ -211,7 +256,8 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
                                       icon: const Icon(Icons.print,
                                           color: Colors.blue),
                                       onPressed: () {
-                                        // Implement print functionality
+                                        _downloadAndOpenPDF(
+                                            covernote['coverNoteNo']);
                                       },
                                     ),
                                   ),
