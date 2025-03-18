@@ -46,7 +46,7 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
         return;
       }
 
-      String baseUrl = 'http://172.21.112.149:8080/cover_note_details';
+      String baseUrl = 'http://172.21.112.154:8080/cover_note_details';
       String url;
 
       if (_covernoteController.text.isNotEmpty) {
@@ -111,7 +111,7 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
     }
 
     String pdfUrl =
-        "http://172.21.112.149:8080/cover_note_details/openCoverNotePDF/$coverNoteNo";
+        "http://172.21.112.154:8080/cover_note_details/openCoverNotePDF/$coverNoteNo";
 
     try {
       final response = await http.get(

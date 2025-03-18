@@ -30,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
 
-    final url = Uri.parse('http://172.21.112.149:8080/user/authenticate');
+    final url = Uri.parse('http://172.21.112.154:8080/user/authenticate');
     try {
       final response = await http.post(
         url,
@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
         String token = data['token'];
         UserModel user = UserModel.fromJson(data['user']);
 
-        print(token);
+        print("token : " + token);
 
         String role = user.roles.isNotEmpty ? user.roles.first.name : '';
 
