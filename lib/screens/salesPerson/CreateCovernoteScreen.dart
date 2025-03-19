@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CreateCovernoteScreen extends StatefulWidget {
   const CreateCovernoteScreen({super.key});
@@ -47,7 +51,52 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   final List<String> _customerTypes = ['Individual', 'Corporate'];
   final List<String> _vehicleMakes = ['Toyota', 'Honda', 'Nissan'];
   final List<String> _vehicleModels = ['Model A', 'Model B', 'Model C'];
-  final List<String> _insuranceProducts = ['Full Coverage', 'Third Party'];
+  List<String> _insuranceProducts = []; // Empty initially
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchInsuranceProducts(); // Fetch data when screen loads
+  }
+
+  // Function to fetch active insurance products with token authentication
+  Future<void> _fetchInsuranceProducts() async {
+    const String apiUrl =
+        'http://172.21.112.154:8080/insurance_product/getAllActive';
+
+    try {
+      // Retrieve token from SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+
+      if (token == null) {
+        print('Error: No token found');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Bearer $token', // Passing the token in the header
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> jsonResponse = json.decode(response.body);
+
+        setState(() {
+          _insuranceProducts = jsonResponse
+              .map((product) => product['productName'].toString())
+              .toList();
+        });
+      } else {
+        throw Exception('Failed to load insurance products');
+      }
+    } catch (e) {
+      print('Error fetching insurance products: $e');
+    }
+  }
 
   // Function to select date
   Future<void> _selectDate(BuildContext context, bool isFrom) async {
@@ -108,35 +157,64 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 _customerTypes,
                 (value) => setState(() => _selectedCustomerType = value),
               ),
-              textField('NIC No', _nicController),
-              textField('Passport No', _passportController),
-              dropdownField(
-                'Title',
-                _selectedTitle,
-                _title,
-                (value) => setState(() => _selectedTitle = value),
-              ),
-              textField('Full Name', _fullNameController),
+              if (_selectedCustomerType == 'Individual') ...[
+                textField('NIC No', _nicController),
+                textField('Passport No', _passportController),
+                dropdownField(
+                  'Title',
+                  _selectedTitle,
+                  _title,
+                  (value) => setState(() => _selectedTitle = value),
+                ),
+                textField('Full Name', _fullNameController),
+              ] else if (_selectedCustomerType == 'Corporate') ...[
+                textField('Business Register No', TextEditingController()),
+                textField('VAT Register', TextEditingController()),
+                textField('Company Name', TextEditingController()),
+              ],
               textField('Address', _addressController),
               textField('Telephone No', _telephoneController),
               textField('Mobile No', _mobileController),
-              const Text(
-                'NIC/Passport Documents',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              Row(
-                children: [
-                  radioButtonNew('Available', 'Available'),
-                  radioButtonNew('Not Available', 'Not Available'),
-                ],
-              ),
-              if (_selectedDocument == 'Available') ...[
-                ElevatedButton(
-                  onPressed: _pickFile,
-                  child: const Text('Attach Document'),
+              if (_selectedCustomerType == 'Individual') ...[
+                const Text(
+                  'NIC/Passport Documents',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
-                if (_selectedFile != null)
-                  Text('File Selected: ${_selectedFile!.path.split('/').last}'),
+                Row(
+                  children: [
+                    radioButtonNew('Available', 'Available'),
+                    radioButtonNew('Not Available', 'Not Available'),
+                  ],
+                ),
+                if (_selectedDocument == 'Available') ...[
+                  ElevatedButton(
+                    onPressed: _pickFile,
+                    child: const Text('Attach NIC or Passport'),
+                  ),
+                  if (_selectedFile != null)
+                    Text(
+                        'File Selected: ${_selectedFile!.path.split('/').last}'),
+                ],
+              ] else if (_selectedCustomerType == 'Corporate') ...[
+                const Text(
+                  'Business Registration Documents',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                Row(
+                  children: [
+                    radioButtonNew('Available', 'Available'),
+                    radioButtonNew('Not Available', 'Not Available'),
+                  ],
+                ),
+                if (_selectedDocument == 'Available') ...[
+                  ElevatedButton(
+                    onPressed: _pickFile,
+                    child: const Text('Attach BR'),
+                  ),
+                  if (_selectedFile != null)
+                    Text(
+                        'File Selected: ${_selectedFile!.path.split('/').last}'),
+                ],
               ],
 ///////////////////////////////////////////////////////////////////////
               sectionHeader('Vehicle Information'),
