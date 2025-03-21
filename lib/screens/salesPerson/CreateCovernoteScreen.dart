@@ -49,14 +49,17 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   // Dropdown options
   final List<String> _title = ['Mr', 'Mrs', 'Miss'];
   final List<String> _customerTypes = ['Individual', 'Corporate'];
-  final List<String> _vehicleMakes = ['Toyota', 'Honda', 'Nissan'];
-  final List<String> _vehicleModels = ['Model A', 'Model B', 'Model C'];
+// Store vehicle makes as a list of maps to hold name and ID
+  List<Map<String, dynamic>> _vehicleMakes = [];
+  List<String> _vehicleModels = []; // Updated to be empty initially
   List<String> _insuranceProducts = []; // Empty initially
+  List<Map<String, dynamic>> _insuranceProductsList = [];
 
   @override
   void initState() {
     super.initState();
     _fetchInsuranceProducts(); // Fetch data when screen loads
+    _fetchVehicleMakes(); // Load vehicle makes from API
   }
 
   // Function to fetch active insurance products with token authentication
@@ -65,7 +68,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
         'http://172.21.112.154:8080/insurance_product/getAllActive';
 
     try {
-      // Retrieve token from SharedPreferences
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
 
@@ -77,7 +79,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       final response = await http.get(
         Uri.parse(apiUrl),
         headers: {
-          'Authorization': 'Bearer $token', // Passing the token in the header
+          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
       );
@@ -86,7 +88,8 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
         List<dynamic> jsonResponse = json.decode(response.body);
 
         setState(() {
-          _insuranceProducts = jsonResponse
+          _insuranceProductsList = jsonResponse.cast<Map<String, dynamic>>();
+          _insuranceProducts = _insuranceProductsList
               .map((product) => product['productName'].toString())
               .toList();
         });
@@ -95,6 +98,42 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       }
     } catch (e) {
       print('Error fetching insurance products: $e');
+    }
+  }
+
+  // Fetch Customer Details by NIC
+  Future<void> _fetchCustomerDetails(String nicNo) async {
+    final String apiUrl =
+        'http://172.21.112.154:8080/customer/getByNicNo/$nicNo';
+
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+
+      if (token == null) return;
+
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json'
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        setState(() {
+          _passportController.text = data['passportNo'] ?? '';
+          _fullNameController.text = data['fullName'] ?? '';
+          _addressController.text = data['address'] ?? '';
+          _telephoneController.text = data['telephoneNo'] ?? '';
+          _mobileController.text = data['mobileNo'] ?? '';
+          _selectedTitle = data['title'] ?? null;
+        });
+      }
+    } catch (e) {
+      print('Error fetching customer details: $e');
     }
   }
 
@@ -139,6 +178,134 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     }
   }
 
+// Function to fetch vehicle makes
+  Future<void> _fetchVehicleMakes() async {
+    const String apiUrl =
+        'http://172.21.112.154:8080/vehicle_make/getAllActive';
+
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+
+      if (token == null) {
+        print('Error: No token found');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> jsonResponse = json.decode(response.body);
+        setState(() {
+          _vehicleMakes = jsonResponse.map((vehicle) {
+            return {
+              'id': vehicle['id'],
+              'name': vehicle['name'],
+            };
+          }).toList();
+        });
+      } else {
+        throw Exception('Failed to load vehicle makes');
+      }
+    } catch (e) {
+      print('Error fetching vehicle makes: $e');
+    }
+  }
+
+// Function to fetch vehicle models based on selected make ID
+  Future<void> _fetchVehicleModels(int vehicleMakeId) async {
+    String apiUrl =
+        'http://172.21.112.154:8080/vehicle_model/getByVehicleMakeId/$vehicleMakeId';
+
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+
+      if (token == null) {
+        print('Error: No token found');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> jsonResponse = json.decode(response.body);
+
+        setState(() {
+          _vehicleModels =
+              jsonResponse.map((model) => model['name'].toString()).toList();
+          _selectedVehicleModel = null; // Reset model selection
+        });
+      } else {
+        throw Exception('Failed to load vehicle models');
+      }
+    } catch (e) {
+      print('Error fetching vehicle models: $e');
+    }
+  }
+
+  // Fetch Vehicle Details by Vehicle Number
+  Future<void> _fetchVehicleDetails(String vehicleNo) async {
+    final String apiUrl =
+        'http://172.21.112.154:8080/vehicle_details/getByVehicleNo/$vehicleNo';
+
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+
+      if (token == null) {
+        print('Error: No token found');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        setState(() {
+          _vehicleNoController.text = data['vehicleNo'] ?? '';
+          _chassisNoController.text = data['chassisNo'] ?? '';
+          _engineNoController.text = data['engineNo'] ?? '';
+
+          // Get vehicle make name
+          _selectedVehicleMake = data['vehicleMake']['name'];
+
+          // Get vehicle make ID and fetch models
+          int vehicleMakeId = data['vehicleMake']['id'];
+          _fetchVehicleModels(vehicleMakeId).then((_) {
+            setState(() {
+              // Set the selected model once models are loaded
+              _selectedVehicleModel = data['vehicleModel']['name'];
+            });
+          });
+        });
+      } else {
+        print('Failed to load vehicle details');
+      }
+    } catch (e) {
+      print('Error fetching vehicle details: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -149,7 +316,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-///////////////////////////Customer Information/////////////////////////////////
               sectionHeader('Customer Information'),
               dropdownField(
                 'Customer Type',
@@ -158,7 +324,15 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 (value) => setState(() => _selectedCustomerType = value),
               ),
               if (_selectedCustomerType == 'Individual') ...[
-                textField('NIC No', _nicController),
+                textFieldService(
+                  'NIC No',
+                  _nicController,
+                  onChanged: (value) {
+                    if (value.length > 5) {
+                      _fetchCustomerDetails(value);
+                    }
+                  },
+                ),
                 textField('Passport No', _passportController),
                 dropdownField(
                   'Title',
@@ -216,15 +390,30 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                         'File Selected: ${_selectedFile!.path.split('/').last}'),
                 ],
               ],
-///////////////////////////////////////////////////////////////////////
               sectionHeader('Vehicle Information'),
-              textField('Vehicle No', _vehicleNoController),
+              textFieldService(
+                'Vehicle No',
+                _vehicleNoController,
+                onChanged: (value) {
+                  if (value.length > 5) {
+                    // Adjust condition as needed
+                    _fetchVehicleDetails(value);
+                  }
+                },
+              ),
               textField('Chassis No', _chassisNoController),
               dropdownField(
                 'Vehicle Make',
                 _selectedVehicleMake,
-                _vehicleMakes,
-                (value) => setState(() => _selectedVehicleMake = value),
+                _vehicleMakes.map((make) => make['name'] as String).toList(),
+                (value) {
+                  setState(() {
+                    _selectedVehicleMake = value;
+                    int selectedMakeId = _vehicleMakes.firstWhere(
+                        (make) => make['name'] == value)['id']; // Get ID
+                    _fetchVehicleModels(selectedMakeId); // Fetch models
+                  });
+                },
               ),
               dropdownField(
                 'Vehicle Model',
@@ -254,18 +443,35 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                   Text(
                       'File Selected: ${_selectedRegistrationFile!.path.split('/').last}'),
               ],
-///////////////////////////////////////////////////////////////////////
               sectionHeader('Insurance Details'),
               dropdownField(
                 'Insurance Product',
                 _selectedInsuranceProduct,
                 _insuranceProducts,
-                (value) => setState(() => _selectedInsuranceProduct = value),
+                (value) {
+                  setState(() {
+                    _selectedInsuranceProduct = value;
+
+                    // Find the selected product details
+                    Map<String, dynamic>? selectedProduct =
+                        _insuranceProductsList.firstWhere(
+                      (product) => product['productName'] == value,
+                      orElse: () => {},
+                    );
+
+                    // Update total premium with basicPremium value
+                    if (selectedProduct.isNotEmpty) {
+                      _totalPremiumController.text =
+                          selectedProduct['basicPremium'].toString();
+                    }
+                  });
+                },
               ),
               textField(
                 'Total Premium',
                 _totalPremiumController,
                 isNumber: true,
+                isDisabled: true,
               ),
               // No of Valid Days (Disabled & Default Value: 14)
               textField('No of Valid Days', _validDaysController,
@@ -375,6 +581,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
             .toList(),
         onChanged: onChanged,
         validator: (value) => value == null ? 'Please select $label' : null,
+        isExpanded: true,
       ),
     );
   }
@@ -410,6 +617,39 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
               ? selectedDate.toLocal().toString().split(' ')[0]
               : 'Select Date'),
         ),
+      ),
+    );
+  }
+
+  Widget textFieldService(String label, TextEditingController controller,
+      {Function(String)? onChanged}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextFormField(
+        controller: controller,
+        decoration:
+            InputDecoration(labelText: label, border: OutlineInputBorder()),
+        validator: (value) =>
+            value == null || value.isEmpty ? 'Enter $label' : null,
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget dropdownFieldService(String label, String? value, List<String> items,
+      Function(String?) onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration:
+            InputDecoration(labelText: label, border: OutlineInputBorder()),
+        items: items
+            .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+            .toList(),
+        onChanged: onChanged,
+        validator: (value) => value == null ? 'Please select $label' : null,
+        isExpanded: true,
       ),
     );
   }
