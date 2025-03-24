@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:coop_agent/services/config.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -64,8 +65,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
 
   // Function to fetch active insurance products with token authentication
   Future<void> _fetchInsuranceProducts() async {
-    const String apiUrl =
-        'http://172.21.112.154:8080/insurance_product/getAllActive';
+    const String apiUrl = "${AppConfig.baseURL}/insurance_product/getAllActive";
 
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -103,8 +103,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
 
   // Fetch Customer Details by NIC
   Future<void> _fetchCustomerDetails(String nicNo) async {
-    final String apiUrl =
-        'http://172.21.112.154:8080/customer/getByNicNo/$nicNo';
+    final String apiUrl = '${AppConfig.baseURL}/customer/getByNicNo/$nicNo';
 
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -180,8 +179,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
 
 // Function to fetch vehicle makes
   Future<void> _fetchVehicleMakes() async {
-    const String apiUrl =
-        'http://172.21.112.154:8080/vehicle_make/getAllActive';
+    const String apiUrl = '${AppConfig.baseURL}/vehicle_make/getAllActive';
 
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -221,7 +219,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
 // Function to fetch vehicle models based on selected make ID
   Future<void> _fetchVehicleModels(int vehicleMakeId) async {
     String apiUrl =
-        'http://172.21.112.154:8080/vehicle_model/getByVehicleMakeId/$vehicleMakeId';
+        '${AppConfig.baseURL}/vehicle_model/getByVehicleMakeId/$vehicleMakeId';
 
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -259,7 +257,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   // Fetch Vehicle Details by Vehicle Number
   Future<void> _fetchVehicleDetails(String vehicleNo) async {
     final String apiUrl =
-        'http://172.21.112.154:8080/vehicle_details/getByVehicleNo/$vehicleNo';
+        '${AppConfig.baseURL}/vehicle_details/getByVehicleNo/$vehicleNo';
 
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();

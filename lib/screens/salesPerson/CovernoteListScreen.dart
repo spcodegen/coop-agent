@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:coop_agent/services/config.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -46,7 +47,7 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
         return;
       }
 
-      String baseUrl = 'http://172.21.112.154:8080/cover_note_details';
+      String baseUrl = '${AppConfig.baseURL}/cover_note_details';
       String url;
 
       if (_covernoteController.text.isNotEmpty) {
@@ -111,7 +112,7 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
     }
 
     String pdfUrl =
-        "http://172.21.112.154:8080/cover_note_details/openCoverNotePDF/$coverNoteNo";
+        "${AppConfig.baseURL}/cover_note_details/openCoverNotePDF/$coverNoteNo";
 
     try {
       final response = await http.get(

@@ -1,4 +1,5 @@
 import 'package:coop_agent/models/user_model.dart';
+import 'package:coop_agent/services/config.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -30,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
 
-    final url = Uri.parse('http://172.21.112.154:8080/user/authenticate');
+    final url = Uri.parse('${AppConfig.baseURL}/user/authenticate');
     try {
       final response = await http.post(
         url,
@@ -49,8 +50,6 @@ class _LoginScreenState extends State<LoginScreen> {
         final data = jsonDecode(response.body);
         String token = data['token'];
         UserModel user = UserModel.fromJson(data['user']);
-
-        print("token : " + token);
 
         String role = user.roles.isNotEmpty ? user.roles.first.name : '';
 
