@@ -39,6 +39,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   String? _selectedInsuranceProduct;
   String _selectedDocument = 'NIC';
   File? _selectedFile;
+  String? _selectedPaymentMethod = "Credit";
 
   String? _selectedRegistrationDocument;
   File? _selectedRegistrationFile;
@@ -46,6 +47,8 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   // Date Pickers
   DateTime? _validFrom;
   DateTime? _validTo;
+  File? _idDocImage;
+  File? _crImage;
 
   // Dropdown options
   final List<String> _title = ['Mr', 'Mrs', 'Miss'];
@@ -138,30 +141,47 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
 
   // Function to select date
   Future<void> _selectDate(BuildContext context, bool isFrom) async {
+    DateTime initialDate = isFrom
+        ? (_validFrom ?? DateTime.now()) // If no date is selected, use today
+        : (_validTo ?? (_validFrom?.add(Duration(days: 14)) ?? DateTime.now()));
+
+    DateTime firstDate = isFrom
+        ? DateTime.now() // Valid from cannot be in the past
+        : (_validFrom != null
+            ? _validFrom!.add(Duration(days: 14))
+            : DateTime.now());
+
+    DateTime lastDate = DateTime(2100);
+
     DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
     );
+
     if (picked != null) {
       setState(() {
         if (isFrom) {
           _validFrom = picked;
-        } else {
-          _validTo = picked;
+          _validTo =
+              _validFrom!.add(const Duration(days: 14)); // Auto-set validTo
         }
       });
     }
   }
 
   // Function to pick a file
-  Future<void> _pickFile() async {
+  Future<void> _pickFile(bool isIdDoc) async {
     final pickedFile =
         await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
-        _selectedFile = File(pickedFile.path);
+        if (isIdDoc) {
+          _idDocImage = File(pickedFile.path);
+        } else {
+          _crImage = File(pickedFile.path);
+        }
       });
     }
   }
@@ -304,6 +324,265 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     }
   }
 
+  // Future<void> _submitForm() async {
+  //   if (!_formKey.currentState!.validate()) return;
+
+  //   var url = Uri.parse("http://172.21.112.154:8080/cover_note_details/save");
+  //   var request = http.MultipartRequest('POST', url);
+
+  //   Map<String, dynamic> coverNoteDetails = {
+  //     "branchName": "GAMPAHA",
+  //     "coverNoteReason": "",
+  //     "customer": {
+  //       "address": _addressController.text,
+  //       "customerType": "Individual",
+  //       "fullName": _fullNameController.text,
+  //       "mobileNo": _mobileController.text,
+  //       "nicNo": _nicController.text,
+  //       "passportNo": _passportController.text,
+  //       "bizRegNo":"",
+  //       "idDocImage": true,
+  //       "telephoneNo": _telephoneController.text,
+  //       "title": "Mr",
+  //       "isCreditAllowed": true,
+  //       "creditLimit": 50000
+  //     },
+  //     "insuranceProductId": 2,
+  //     "issuedDateTime": DateTime.now().toIso8601String(),
+  //     "noOfValidDays": 14,
+  //     "paymentMethod": "Credit",
+  //     "renewCount": 0,
+  //     "sumInsured": 0,
+  //     "totalPremium": double.tryParse(_totalPremiumController.text) ?? 0,
+  //     "validFrom": _validFrom?.toIso8601String(),
+  //     "validTo": _validTo?.toIso8601String(),
+  //     "vehicleDetails": {
+  //       "chassisNo": _chassisNoController.text,
+  //       "crImage": true,
+  //       "engineNo": _engineNoController.text,
+  //       "vehicleMakeId": 1,
+  //       "vehicleModelId": 3,
+  //       "vehicleNo": _vehicleNoController.text
+  //     }
+  //   };
+
+  //   request.fields['coverNoteDetailsRequest'] = jsonEncode(coverNoteDetails);
+
+  //   if (_idDocImage != null) {
+  //     request.files.add(await http.MultipartFile.fromPath(
+  //         'idDocImageRequest', _idDocImage!.path));
+  //   }
+  //   if (_crImage != null) {
+  //     request.files.add(
+  //         await http.MultipartFile.fromPath('crImageRequest', _crImage!.path));
+  //   }
+
+  //   var response = await request.send();
+  //   if (response.statusCode == 200) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Cover note saved successfully!')));
+  //   } else {
+  //     ScaffoldMessenger.of(context)
+  //         .showSnackBar(SnackBar(content: Text('Failed to save cover note.')));
+  //   }
+  // }
+
+  // Retrieve token from SharedPreferences
+
+  Future<String?> _getToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token'); // Adjust key according to your storage
+  }
+
+  // Future<void> _saveCovernote() async {
+  //   String? token = await _getToken();
+
+  //   if (token == null) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text("Token not found, please login again.")),
+  //     );
+  //     return;
+  //   }
+
+  //   Map<String, dynamic> coverNoteDetailsRequest = {
+  //     "branchName": "GAMPAHA",
+  //     "coverNoteReason": "",
+  //     "customer": {
+  //       "address": _addressController.text,
+  //       "customerType": _selectedCustomerType,
+  //       "fullName": _fullNameController.text,
+  //       "mobileNo": _mobileController.text,
+  //       "nicNo": _nicController.text,
+  //       "passportNo": _passportController.text,
+  //       "bizRegNo": "",
+  //       "idDocImage": false,
+  //       "vatRegNo": "",
+  //       "telephoneNo": _telephoneController.text,
+  //       "title": _selectedTitle,
+  //       "isCreditAllowed": true,
+  //       "creditLimit": 50000
+  //     },
+  //     "insuranceProductId": 2,
+  //     "issuedDateTime": DateTime.now().toIso8601String(),
+  //     "noOfValidDays": int.parse(_validDaysController.text),
+  //     "paymentMethod": _selectedPaymentMethod,
+  //     "renewCount": 0,
+  //     "sumInsured": 0,
+  //     "totalPremium": double.parse(_totalPremiumController.text),
+  //     "validFrom": DateTime.now().toIso8601String(),
+  //     "validTo": DateTime.now().add(Duration(days: 14)).toIso8601String(),
+  //     "vehicleDetails": {
+  //       "chassisNo": _chassisNoController.text,
+  //       "crImage": false,
+  //       "engineNo": _engineNoController.text,
+  //       "vehicleMakeId": 1,
+  //       "vehicleModelId": 3,
+  //       "vehicleNo": _vehicleNoController.text
+  //     }
+  //   };
+
+  //   String jsonString = jsonEncode(coverNoteDetailsRequest);
+  //   print("Request JSON: $jsonString"); // Debugging
+
+  //   try {
+  //     var response = await http.post(
+  //       Uri.parse("http://172.21.112.154:8080/cover_note_details/save"),
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         "Authorization": "Bearer $token",
+  //       },
+  //       body: jsonString,
+  //     );
+
+  //     print("Response Status Code: ${response.statusCode}");
+  //     print("Response Body: ${response.body}");
+
+  //     if (response.statusCode == 200) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text("Covernote Saved Successfully!")),
+  //       );
+  //     } else {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text("Failed to Save Covernote: ${response.body}")),
+  //       );
+  //     }
+  //   } catch (error) {
+  //     print("Error: $error");
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text("Error: $error")),
+  //     );
+  //   }
+  // }
+
+  Future<void> _saveCovernote(BuildContext context) async {
+    String? token = await _getToken();
+
+    if (token == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Token not found, please login again.")),
+        );
+      }
+      return;
+    }
+
+    // Constructing the JSON object (Ensuring correct types)
+    Map<String, dynamic> coverNoteDetailsRequest = {
+      "branchName": "GAMPAHA",
+      "coverNoteReason": "",
+      "customer": {
+        "address": _addressController.text.trim().isNotEmpty
+            ? _addressController.text.trim()
+            : "N/A",
+        "customerType": _selectedCustomerType,
+        "fullName": _fullNameController.text.trim().isNotEmpty
+            ? _fullNameController.text.trim()
+            : "N/A",
+        "mobileNo": _mobileController.text.trim().isNotEmpty
+            ? _mobileController.text.trim()
+            : "0000000000",
+        "nicNo": _nicController.text.trim().isNotEmpty
+            ? _nicController.text.trim()
+            : "N/A",
+        "passportNo": _passportController.text.trim().isNotEmpty
+            ? _passportController.text.trim()
+            : "N/A",
+        "bizRegNo": "",
+        "idDocImage": false, // Boolean value remains boolean
+        "vatRegNo": "",
+        "telephoneNo": _telephoneController.text.trim().isNotEmpty
+            ? _telephoneController.text.trim()
+            : "N/A",
+        "title": _selectedTitle,
+        "isCreditAllowed": true, // Boolean value remains boolean
+        "creditLimit": 50000 // Integer value remains integer
+      },
+      "insuranceProductId": 2, // Integer value remains integer
+      "issuedDateTime": DateTime.now().toIso8601String(),
+      "noOfValidDays": int.tryParse(_validDaysController.text.trim()) ?? 14,
+      "paymentMethod": _selectedPaymentMethod,
+      "renewCount": 0, // Integer value remains integer
+      "sumInsured": 0.0, // Double value remains double
+      "totalPremium":
+          double.tryParse(_totalPremiumController.text.trim()) ?? 0.0,
+      "validFrom": DateTime.now().toIso8601String(),
+      "validTo": DateTime.now().add(Duration(days: 14)).toIso8601String(),
+      "vehicleDetails": {
+        "chassisNo": _chassisNoController.text.trim().isNotEmpty
+            ? _chassisNoController.text.trim()
+            : "N/A",
+        "crImage": false, // Boolean value remains boolean
+        "engineNo": _engineNoController.text.trim().isNotEmpty
+            ? _engineNoController.text.trim()
+            : "N/A",
+        "vehicleMakeId": 1, // Integer value remains integer
+        "vehicleModelId": 3, // Integer value remains integer
+        "vehicleNo": _vehicleNoController.text.trim().isNotEmpty
+            ? _vehicleNoController.text.trim()
+            : "N/A"
+      }
+    };
+
+    // Convert to JSON String
+    String jsonString = jsonEncode(coverNoteDetailsRequest);
+    print("Request JSON: $jsonString"); // Debugging
+
+    try {
+      var response = await http.post(
+        Uri.parse("http://172.21.112.154:8080/cover_note_details/save"),
+        headers: {
+          "Content-Type":
+              "application/x-www-form-urlencoded", // Change content type
+          "Authorization": "Bearer $token",
+        },
+        body: jsonString, // Sending JSON as a String
+      );
+
+      print("Response Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+
+      if (context.mounted) {
+        if (response.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Covernote Saved Successfully!")),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text("Failed to Save Covernote: ${response.body}")),
+          );
+        }
+      }
+    } catch (error) {
+      print("Error: $error");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $error")),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -359,10 +638,13 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                   ],
                 ),
                 if (_selectedDocument == 'Available') ...[
+                  // ElevatedButton(
+                  //   onPressed: _pickFile,
+                  //   child: const Text('Attach NIC or Passport'),
+                  // ),
                   ElevatedButton(
-                    onPressed: _pickFile,
-                    child: const Text('Attach NIC or Passport'),
-                  ),
+                      onPressed: () => _pickFile(true),
+                      child: Text('Attach ID Doc')),
                   if (_selectedFile != null)
                     Text(
                         'File Selected: ${_selectedFile!.path.split('/').last}'),
@@ -379,10 +661,13 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                   ],
                 ),
                 if (_selectedDocument == 'Available') ...[
+                  // ElevatedButton(
+                  //   onPressed: _pickFile,
+                  //   child: const Text('Attach BR'),
+                  // ),
                   ElevatedButton(
-                    onPressed: _pickFile,
-                    child: const Text('Attach BR'),
-                  ),
+                      onPressed: () => _pickFile(false),
+                      child: Text('Attach CR Doc')),
                   if (_selectedFile != null)
                     Text(
                         'File Selected: ${_selectedFile!.path.split('/').last}'),
@@ -479,10 +764,12 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 _validFrom,
                 () => _selectDate(context, true),
               ),
+
               datePickerField(
                 'Valid To',
                 _validTo,
-                () => _selectDate(context, false),
+                null, // Disable manual selection
+                isDisabled: true, // Make it non-editable
               ),
               const Text(
                 'Payment Method',
@@ -497,11 +784,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
               Center(
                 child: ElevatedButton(
                   onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Form Submitted')),
-                      );
-                    }
+                    _saveCovernote(context);
                   },
                   style:
                       ElevatedButton.styleFrom(backgroundColor: Colors.green),
@@ -602,19 +885,20 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   }
 
   // Date Picker Widget
-  Widget datePickerField(
-      String label, DateTime? selectedDate, VoidCallback onTap) {
+  Widget datePickerField(String label, DateTime? date, VoidCallback? onTap,
+      {bool isDisabled = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        onTap: onTap,
-        child: InputDecorator(
-          decoration:
-              InputDecoration(labelText: label, border: OutlineInputBorder()),
-          child: Text(selectedDate != null
-              ? selectedDate.toLocal().toString().split(' ')[0]
-              : 'Select Date'),
+      child: TextFormField(
+        readOnly: true,
+        controller: TextEditingController(
+            text: date != null ? '${date.toLocal()}'.split(' ')[0] : ''),
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+          suffixIcon: isDisabled ? null : Icon(Icons.calendar_today),
         ),
+        onTap: isDisabled ? null : onTap,
       ),
     );
   }
