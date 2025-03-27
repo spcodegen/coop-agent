@@ -33,11 +33,10 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   String? _selectedTitle;
   String? _selectedCustomerType;
   String? _selectedVehicleMake;
-  String? _selectedVehicleModel;
   String? _selectedInsuranceProduct;
-  String _selectedDocument = 'NIC';
+  String? _selectedDocument;
   File? _selectedFile;
-  String? _selectedPaymentMethod = "Credit";
+  String? _selectedPaymentMethod;
   String? _selectedRegistrationDocument;
   File? _selectedRegistrationFile;
   // Date Pickers
@@ -51,157 +50,25 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   final List<String> _customerTypes = ['Individual', 'Corporate'];
   // Store vehicle makes as a list of maps to hold name and ID
   List<Map<String, dynamic>> _vehicleMakes = [];
-  List<String> _vehicleModels = []; // Updated to be empty initially
   List<String> _insuranceProducts = []; // Empty initially
   List<Map<String, dynamic>> _insuranceProductsList = [];
-  // Define Cover Limit options
-  final List<int> _coverLimitOptions = [0, 100000, 300000, 500000, 1000000];
   int _selectedCoverLimit = 0; // Default selected value
-
-  // Dropdown selections
   // Insurance Product Data
   double _basicPremium = 0;
   double _policyFee = 0;
+  //Global veriable
+  int? _selectedVehicleMakeId; // Store selected Make ID
+  int? _selectedVehicleModelId; // Store selected Model ID
+  int? _insuranceProductId;
+  List<Map<String, dynamic>> _vehicleModelsList = []; // Store full model list
+  List<String> _vehicleModels = []; // Store only names for dropdown
+  String? _selectedVehicleModel; // Store selected model name
 
   @override
   void initState() {
     super.initState();
     _fetchInsuranceProducts(); // Fetch data when screen loads
     _fetchVehicleMakes(); // Load vehicle makes from API
-  }
-
-  // Function to fetch active insurance products with token authentication
-  // Future<void> _fetchInsuranceProducts() async {
-  //   const String apiUrl = "${AppConfig.baseURL}/insurance_product/getAllActive";
-
-  //   try {
-  //     SharedPreferences prefs = await SharedPreferences.getInstance();
-  //     String? token = prefs.getString('token');
-
-  //     if (token == null) {
-  //       print('Error: No token found');
-  //       return;
-  //     }
-
-  //     final response = await http.get(
-  //       Uri.parse(apiUrl),
-  //       headers: {
-  //         'Authorization': 'Bearer $token',
-  //         'Content-Type': 'application/json',
-  //       },
-  //     );
-
-  //     if (response.statusCode == 200) {
-  //       List<dynamic> jsonResponse = json.decode(response.body);
-
-  //       setState(() {
-  //         _insuranceProductsList = jsonResponse.cast<Map<String, dynamic>>();
-  //         _insuranceProducts = _insuranceProductsList
-  //             .map((product) => product['productName'].toString())
-  //             .toList();
-  //       });
-  //     } else {
-  //       throw Exception('Failed to load insurance products');
-  //     }
-  //   } catch (e) {
-  //     print('Error fetching insurance products: $e');
-  //   }
-  // }
-
-  Future<void> fetchInsuranceProductAndCalculatePremium() async {
-    String? token = await _getToken();
-
-    if (token == null) {
-      print("Token not found, please login again.");
-      return;
-    }
-
-    try {
-      // Step 1: Fetch Insurance Product Details
-      var productResponse = await http.get(
-        Uri.parse("http://172.21.112.149:9011/insurance_product/getById/5"),
-        headers: {
-          "Authorization": "Bearer $token",
-        },
-      );
-
-      if (productResponse.statusCode == 200) {
-        var productData = jsonDecode(productResponse.body);
-        int insuranceProductId = productData['id'];
-        double basicPremium = productData['basicPremium'];
-        double policyFee = productData['policyFee'];
-
-        // Property Damage Cover Limit (Get from Dropdown)
-        double propertyDamageCoverLimit =
-            double.parse(_selectedCoverLimit as String) ?? 0;
-
-        // Step 2: Calculate Premium
-        var premiumResponse = await http.get(
-          Uri.parse(
-            "http://172.21.112.149:9011/insurance_product/generatePremium/"
-            "$basicPremium/$policyFee/$propertyDamageCoverLimit",
-          ),
-          headers: {
-            "Authorization": "Bearer $token",
-          },
-        );
-
-        print(premiumResponse);
-
-        if (premiumResponse.statusCode == 200) {
-          var premiumData = jsonDecode(premiumResponse.body);
-          double totalPremium = premiumData['totalPremium'];
-
-          // Step 3: Update UI
-          setState(() {
-            _totalPremiumController.text = totalPremium.toString();
-          });
-
-          print("Total Premium Updated: $totalPremium");
-        } else {
-          print("Failed to fetch premium: ${premiumResponse.body}");
-        }
-      } else {
-        print("Failed to fetch insurance product: ${productResponse.body}");
-      }
-    } catch (error) {
-      print("Error: $error");
-    }
-  }
-
-  // Fetch Customer Details by NIC
-  Future<void> _fetchCustomerDetails(String nicNo) async {
-    final String apiUrl = '${AppConfig.baseURL}/customer/getByNicNo/$nicNo';
-
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('token');
-
-      if (token == null) return;
-
-      final response = await http.get(
-        Uri.parse(apiUrl),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        setState(() {
-          _passportController.text = data['passportNo'] ?? '';
-          _fullNameController.text = data['fullName'] ?? '';
-          _addressController.text = data['address'] ?? '';
-          _telephoneController.text = data['telephoneNo'] ?? '';
-          _mobileController.text = data['mobileNo'] ?? '';
-          _selectedTitle = data['title'] ?? null;
-        });
-      }
-    } catch (e) {
-      print('Error fetching customer details: $e');
-    }
   }
 
   // Function to select date
@@ -301,7 +168,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     }
   }
 
-// Function to fetch vehicle models based on selected make ID
+  // Function to fetch vehicle models based on selected make ID
   Future<void> _fetchVehicleModels(int vehicleMakeId) async {
     String apiUrl =
         '${AppConfig.baseURL}/vehicle_model/getByVehicleMakeId/$vehicleMakeId';
@@ -327,15 +194,54 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
         List<dynamic> jsonResponse = json.decode(response.body);
 
         setState(() {
-          _vehicleModels =
-              jsonResponse.map((model) => model['name'].toString()).toList();
-          _selectedVehicleModel = null; // Reset model selection
+          _vehicleModelsList = jsonResponse
+              .cast<Map<String, dynamic>>(); // Store full response list
+          _vehicleModels = _vehicleModelsList
+              .map((model) => model['name'].toString())
+              .toList(); // Store only names
+          _selectedVehicleModel = null; // Reset selection
+          _selectedVehicleModelId = null; // Reset stored model ID
         });
       } else {
         throw Exception('Failed to load vehicle models');
       }
     } catch (e) {
       print('Error fetching vehicle models: $e');
+    }
+  }
+
+  // Fetch Customer Details by NIC
+  Future<void> _fetchCustomerDetails(String nicNo) async {
+    final String apiUrl = '${AppConfig.baseURL}/customer/getByNicNo/$nicNo';
+
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+
+      if (token == null) return;
+
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json'
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        setState(() {
+          _passportController.text = data['passportNo'] ?? '';
+          _fullNameController.text = data['fullName'] ?? '';
+          _addressController.text = data['address'] ?? '';
+          _telephoneController.text = data['telephoneNo'] ?? '';
+          _mobileController.text = data['mobileNo'] ?? '';
+          _selectedTitle = data['title'] ?? null;
+        });
+      }
+    } catch (e) {
+      print('Error fetching customer details: $e');
     }
   }
 
@@ -395,6 +301,99 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     return prefs.getString('token'); // Adjust key according to your storage
   }
 
+  // Fetch Insurance Products
+  Future<void> _fetchInsuranceProducts() async {
+    String apiUrl = "${AppConfig.baseURL}/insurance_product/getAllActive";
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+      if (token == null) return;
+
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> jsonResponse = json.decode(response.body);
+        setState(() {
+          _insuranceProductsList =
+              jsonResponse.cast<Map<String, dynamic>>(); // Store full list
+          _insuranceProducts = _insuranceProductsList
+              .map((product) => product['productName'].toString())
+              .toList(); // Store only names for dropdown
+          _insuranceProductId = null; // Reset selected product ID
+        });
+      }
+    } catch (e) {
+      print('Error fetching insurance products: $e');
+    }
+  }
+
+  // Fetch Insurance Product Details
+  Future<void> _fetchInsuranceProductDetails(String productName) async {
+    String? token = await _getToken();
+    if (token == null) return;
+    try {
+      var selectedProduct = _insuranceProductsList.firstWhere(
+          (product) => product['productName'] == productName,
+          orElse: () => {});
+      if (selectedProduct.isEmpty) return;
+      int productId = selectedProduct['id'];
+      _insuranceProductId = productId; // Store globally
+      var response = await http.get(
+        Uri.parse("${AppConfig.baseURL}/insurance_product/getById/$productId"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+      if (response.statusCode == 200) {
+        var productData = jsonDecode(response.body);
+        setState(() {
+          _basicPremium = productData['basicPremium'] ?? 0;
+          _policyFee = productData['policyFee'] ?? 0;
+        });
+        _calculatePremium();
+      }
+    } catch (e) {
+      print("Error fetching product details: $e");
+    }
+  }
+
+  // Calculate Premium
+  Future<void> _calculatePremium() async {
+    String? token = await _getToken();
+    if (token == null) return;
+
+    // Construct the URL with dynamic values
+    String apiUrl = "${AppConfig.baseURL}/insurance_product/generatePremium/"
+        "$_basicPremium/$_policyFee/$_selectedCoverLimit";
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        var premiumData =
+            jsonDecode(response.body); // Assuming API returns a double
+        setState(() {
+          _totalPremiumController.text = premiumData.toString();
+        });
+      } else {
+        print("Error: ${response.statusCode} - ${response.body}");
+      }
+    } catch (e) {
+      print("Error calculating premium: $e");
+    }
+  }
+
+  //Save covernote
   Future<void> _saveCovernote(BuildContext context) async {
     String? token = await _getToken();
 
@@ -407,9 +406,14 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       return;
     }
 
+    // Get branchName from SharedPreferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String branchName =
+        prefs.getString('slcBranchDescription') ?? "Default Branch";
+
     // Construct the JSON object
     Map<String, dynamic> coverNoteDetailsRequest = {
-      "branchName": "ALAWWA",
+      "branchName": branchName,
       "coverNoteReason": "",
       "customer": {
         "address": _addressController.text.isNotEmpty
@@ -436,7 +440,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
         "isCreditAllowed": true,
         "creditLimit": 50000.00
       },
-      "insuranceProductId": 5,
+      "insuranceProductId": _insuranceProductId,
       "issuedDateTime": formatDateTime(DateTime.now()),
       "noOfValidDays": _validDaysController.text.isNotEmpty
           ? int.parse(_validDaysController.text)
@@ -444,7 +448,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       "paymentMethod": _selectedPaymentMethod,
       "renewCount": 0,
       "sumInsured": 0,
-      "propertyDamageCoverLimit": 100000.00,
+      "propertyDamageCoverLimit": _selectedCoverLimit,
       "totalPremium": _totalPremiumController.text.isNotEmpty
           ? double.parse(_totalPremiumController.text)
           : 0,
@@ -460,8 +464,8 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
         "engineNo": _engineNoController.text.isNotEmpty
             ? _engineNoController.text
             : "N/A",
-        "vehicleMakeId": 2,
-        "vehicleModelId": 2,
+        "vehicleMakeId": _selectedVehicleMakeId,
+        "vehicleModelId": _selectedVehicleModelId,
         "vehicleNo": _vehicleNoController.text.isNotEmpty
             ? _vehicleNoController.text
             : "N/A"
@@ -472,12 +476,10 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       // Convert the JSON object to a string
       String jsonString = jsonEncode(coverNoteDetailsRequest);
 
-      print(jsonString);
-
       // Create Multipart Request
       var request = http.MultipartRequest(
         "POST",
-        Uri.parse("http://172.21.112.149:9011/cover_note_details/save"),
+        Uri.parse("${AppConfig.baseURL}/cover_note_details/save"),
       );
 
       // Add headers
@@ -513,92 +515,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
           SnackBar(content: Text("Error: $error")),
         );
       }
-    }
-  }
-
-//////////////////////////////////////////////////////////////
-  // Fetch Insurance Products
-  Future<void> _fetchInsuranceProducts() async {
-    const String apiUrl = "${AppConfig.baseURL}/insurance_product/getAllActive";
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('token');
-      if (token == null) return;
-
-      final response = await http.get(
-        Uri.parse(apiUrl),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        List<dynamic> jsonResponse = json.decode(response.body);
-        setState(() {
-          _insuranceProductsList = jsonResponse.cast<Map<String, dynamic>>();
-          _insuranceProducts = _insuranceProductsList
-              .map((product) => product['productName'].toString())
-              .toList();
-        });
-      }
-    } catch (e) {
-      print('Error fetching insurance products: $e');
-    }
-  }
-
-  // Fetch Insurance Product Details
-  Future<void> _fetchInsuranceProductDetails(String productName) async {
-    String? token = await _getToken();
-    if (token == null) return;
-
-    try {
-      var selectedProduct = _insuranceProductsList.firstWhere(
-          (product) => product['productName'] == productName,
-          orElse: () => {});
-      if (selectedProduct.isEmpty) return;
-      int productId = selectedProduct['id'];
-
-      var response = await http.get(
-        Uri.parse(
-            "http://172.21.112.149:9011/insurance_product/getById/$productId"),
-        headers: {"Authorization": "Bearer $token"},
-      );
-
-      if (response.statusCode == 200) {
-        var productData = jsonDecode(response.body);
-        setState(() {
-          _basicPremium = productData['basicPremium'] ?? 0;
-          _policyFee = productData['policyFee'] ?? 0;
-        });
-        _calculatePremium();
-      }
-    } catch (e) {
-      print("Error fetching product details: $e");
-    }
-  }
-
-  // Calculate Premium
-  Future<void> _calculatePremium() async {
-    String? token = await _getToken();
-    if (token == null) return;
-
-    try {
-      var response = await http.get(
-        Uri.parse(
-            "http://172.21.112.149:9011/insurance_product/generatePremium/"
-            "$_basicPremium/$_policyFee/$_selectedCoverLimit"),
-        headers: {"Authorization": "Bearer $token"},
-      );
-
-      if (response.statusCode == 200) {
-        var premiumData = jsonDecode(response.body);
-        setState(() {
-          _totalPremiumController.text = premiumData['totalPremium'].toString();
-        });
-      }
-    } catch (e) {
-      print("Error calculating premium: $e");
     }
   }
 
@@ -657,13 +573,10 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                   ],
                 ),
                 if (_selectedDocument == 'Available') ...[
-                  // ElevatedButton(
-                  //   onPressed: _pickFile,
-                  //   child: const Text('Attach NIC or Passport'),
-                  // ),
                   ElevatedButton(
-                      onPressed: () => _pickFile(true),
-                      child: Text('Attach ID Doc')),
+                    onPressed: () => _pickFile(true),
+                    child: Text('Attach ID Doc'),
+                  ),
                   if (_selectedFile != null)
                     Text(
                         'File Selected: ${_selectedFile!.path.split('/').last}'),
@@ -680,10 +593,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                   ],
                 ),
                 if (_selectedDocument == 'Available') ...[
-                  // ElevatedButton(
-                  //   onPressed: _pickFile,
-                  //   child: const Text('Attach BR'),
-                  // ),
                   ElevatedButton(
                       onPressed: () => _pickFile(false),
                       child: Text('Attach CR Doc')),
@@ -711,9 +620,11 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 (value) {
                   setState(() {
                     _selectedVehicleMake = value;
-                    int selectedMakeId = _vehicleMakes.firstWhere(
-                        (make) => make['name'] == value)['id']; // Get ID
-                    _fetchVehicleModels(selectedMakeId); // Fetch models
+                    _selectedVehicleMakeId = _vehicleMakes.firstWhere(
+                      (make) => make['name'] == value,
+                    )['id']; // Store Make ID
+                    _fetchVehicleModels(
+                        _selectedVehicleMakeId!); // Fetch vehicle models
                   });
                 },
               ),
@@ -721,7 +632,15 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 'Vehicle Model',
                 _selectedVehicleModel,
                 _vehicleModels,
-                (value) => setState(() => _selectedVehicleModel = value),
+                (value) {
+                  setState(() {
+                    _selectedVehicleModel = value;
+                    _selectedVehicleModelId = _vehicleModelsList.firstWhere(
+                      (model) => model['name'] == value,
+                    )['id']; // Store Model ID
+                  });
+                  print("Selected Vehicle Model ID: $_selectedVehicleModelId");
+                },
               ),
               textField('Engine No', _engineNoController),
               // Certificate of Registration Documents Section
@@ -746,45 +665,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                       'File Selected: ${_selectedRegistrationFile!.path.split('/').last}'),
               ],
               sectionHeader('Insurance Details'),
-              // dropdownField(
-              //   'Insurance Product',
-              //   _selectedInsuranceProduct,
-              //   _insuranceProducts,
-              //   (value) {
-              //     setState(() {
-              //       _selectedInsuranceProduct = value;
-
-              //       // Find the selected product details
-              //       Map<String, dynamic>? selectedProduct =
-              //           _insuranceProductsList.firstWhere(
-              //         (product) => product['productName'] == value,
-              //         orElse: () => {},
-              //       );
-
-              //       // Update total premium with basicPremium value
-              //       if (selectedProduct.isNotEmpty) {
-              //         _totalPremiumController.text =
-              //             selectedProduct['basicPremium'].toString();
-              //       }
-              //     });
-              //   },
-              // ),
-              // Inside your widget tree
-              // dropdownField(
-              //   'Cover Limit',
-              //   _selectedCoverLimit
-              //       .toString(), // Convert int to string for dropdown
-              //   _coverLimitOptions
-              //       .map((limit) => limit.toString())
-              //       .toList(), // Convert list to string
-              //   (value) {
-              //     setState(() {
-              //       fetchInsuranceProductAndCalculatePremium();
-              //       // _selectedCoverLimit =
-              //       //     int.parse(value!); // Convert back to int
-              //     });
-              //   },
-              // ),
               dropdownField(
                 'Insurance Product',
                 _selectedInsuranceProduct,
@@ -792,8 +672,11 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 (value) {
                   setState(() {
                     _selectedInsuranceProduct = value;
-                    _fetchInsuranceProductDetails(value!);
+                    _insuranceProductId = _insuranceProductsList.firstWhere(
+                      (product) => product['productName'] == value,
+                    )['id']; // Get and store product ID
                   });
+                  print("Selected Insurance Product ID: $_insuranceProductId");
                 },
               ),
               dropdownField(
@@ -802,9 +685,10 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 ["0", "100000", "300000", "500000", "1000000"],
                 (value) {
                   setState(() {
-                    _selectedCoverLimit = int.parse(value!);
-                    _calculatePremium();
+                    _selectedCoverLimit =
+                        int.parse(value!); // Update Cover Limit
                   });
+                  _calculatePremium();
                 },
               ),
               textField(
@@ -821,7 +705,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 _validFrom,
                 () => _selectDate(context, true),
               ),
-
               datePickerField(
                 'Valid To',
                 _validTo,
@@ -834,8 +717,8 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
               ),
               Row(
                 children: [
-                  radioButton('Card'),
-                  radioButton('Credit'),
+                  radioButton('CARD'),
+                  radioButton('CASH'),
                 ],
               ),
               Center(
@@ -856,10 +739,12 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     );
   }
 
+  // Date Widget
   String formatDateTime(DateTime dateTime) {
     return dateTime.toUtc().toIso8601String();
   }
 
+  // SectionHeader Widget
   Widget sectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -868,33 +753,43 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     );
   }
 
+  // RadioButton Widget
   Widget radioButton(String value) {
     return Row(
       children: [
-        Radio<String>(
+        Radio(
           value: value,
-          groupValue: _selectedDocument,
-          onChanged: (val) => setState(() => _selectedDocument = val!),
+          groupValue: _selectedPaymentMethod,
+          onChanged: (String? newValue) {
+            setState(() {
+              _selectedPaymentMethod = newValue!;
+            });
+          },
         ),
         Text(value),
       ],
     );
   }
 
-  // RadioButton Widget
+  // RadioButton New Widget
   Widget radioButtonNew(String label, String value) {
     return Row(
       children: [
-        Radio<String>(
+        Radio(
           value: value,
           groupValue: _selectedDocument,
-          onChanged: (val) => setState(() => _selectedDocument = val!),
+          onChanged: (String? newValue) {
+            setState(() {
+              _selectedDocument = newValue!;
+            });
+          },
         ),
         Text(label),
       ],
     );
   }
 
+  //Radio button widget
   Widget radioButtonRegistration(String label, String value) {
     return Row(
       children: [
@@ -928,7 +823,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     );
   }
 
-  // Text Field Widget
+  // Text Field Widget nomle
   Widget textField(String label, TextEditingController controller,
       {bool isNumber = false, bool isDisabled = false}) {
     return Padding(
@@ -964,6 +859,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     );
   }
 
+  //Service call textField widget
   Widget textFieldService(String label, TextEditingController controller,
       {Function(String)? onChanged}) {
     return Padding(
@@ -975,24 +871,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
         validator: (value) =>
             value == null || value.isEmpty ? 'Enter $label' : null,
         onChanged: onChanged,
-      ),
-    );
-  }
-
-  Widget dropdownFieldService(String label, String? value, List<String> items,
-      Function(String?) onChanged) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        decoration:
-            InputDecoration(labelText: label, border: OutlineInputBorder()),
-        items: items
-            .map((item) => DropdownMenuItem(value: item, child: Text(item)))
-            .toList(),
-        onChanged: onChanged,
-        validator: (value) => value == null ? 'Please select $label' : null,
-        isExpanded: true,
       ),
     );
   }
