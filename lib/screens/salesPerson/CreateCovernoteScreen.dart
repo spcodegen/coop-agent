@@ -35,16 +35,18 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   String? _selectedVehicleMake;
   String? _selectedInsuranceProduct;
   String? _selectedDocument;
-  File? _selectedFile;
   String? _selectedPaymentMethod;
   String? _selectedRegistrationDocument;
-  File? _selectedRegistrationFile;
+
   // Date Pickers
   DateTime? _validFrom;
   DateTime? _validTo;
+
   //attachment document
   File? _idDocImage;
   File? _crImage;
+  File? _selectedRegistrationFile;
+
   // Dropdown options
   final List<String> _title = ['Mr', 'Mrs', 'Miss'];
   final List<String> _customerTypes = ['Individual', 'Corporate'];
@@ -476,6 +478,8 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       // Convert the JSON object to a string
       String jsonString = jsonEncode(coverNoteDetailsRequest);
 
+      //print("jsonString : " + jsonString);
+
       // Create Multipart Request
       var request = http.MultipartRequest(
         "POST",
@@ -490,12 +494,34 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       // Add JSON data as a form field
       request.fields["coverNoteDetailsRequest"] = jsonString;
 
+      // Attach files if available
+      if (_idDocImage != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'idDocImageRequest', // Key name for API
+          _idDocImage!.path,
+        ));
+      }
+
+      if (_crImage != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'idDocImageRequest', // Key name for API
+          _crImage!.path,
+        ));
+      }
+
+      if (_selectedRegistrationFile != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'crImageRequest', // Key name for API
+          _selectedRegistrationFile!.path,
+        ));
+      }
+
       // Send the request
       var response = await request.send();
       var responseBody = await response.stream.bytesToString();
 
-      print("Response Status Code: ${response.statusCode}");
-      print("Response Body: $responseBody");
+      //print("Response Status Code: ${response.statusCode}");
+      //print("Response Body: $responseBody");
 
       if (context.mounted) {
         if (response.statusCode == 200) {
@@ -577,9 +603,30 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                     onPressed: () => _pickFile(true),
                     child: Text('Attach ID Doc'),
                   ),
-                  if (_selectedFile != null)
-                    Text(
-                        'File Selected: ${_selectedFile!.path.split('/').last}'),
+                  if (_idDocImage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'File Selected: ${_idDocImage!.path.split('/').last}',
+                              style: TextStyle(
+                                  color: const Color.fromARGB(255, 40, 2, 255),
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              setState(() {
+                                _idDocImage = null;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ] else if (_selectedCustomerType == 'Corporate') ...[
                 const Text(
@@ -596,9 +643,33 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                   ElevatedButton(
                       onPressed: () => _pickFile(false),
                       child: Text('Attach CR Doc')),
-                  if (_selectedFile != null)
-                    Text(
-                        'File Selected: ${_selectedFile!.path.split('/').last}'),
+                  if (_crImage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'File Selected: ${_crImage!.path.split('/').last}',
+                              style: TextStyle(
+                                  color: const Color.fromARGB(255, 40, 2, 255),
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.delete,
+                              color: const Color.fromARGB(255, 230, 21, 6),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _crImage = null;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ],
               sectionHeader('Vehicle Information'),
@@ -639,7 +710,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                       (model) => model['name'] == value,
                     )['id']; // Store Model ID
                   });
-                  print("Selected Vehicle Model ID: $_selectedVehicleModelId");
                 },
               ),
               textField('Engine No', _engineNoController),
@@ -661,8 +731,30 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                   child: const Text('Attach Document'),
                 ),
                 if (_selectedRegistrationFile != null)
-                  Text(
-                      'File Selected: ${_selectedRegistrationFile!.path.split('/').last}'),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'File Selected: ${_selectedRegistrationFile!.path.split('/').last}',
+                            style: TextStyle(
+                                color: const Color.fromARGB(255, 40, 2, 255),
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete,
+                              color: const Color.fromARGB(255, 230, 21, 6)),
+                          onPressed: () {
+                            setState(() {
+                              _crImage = null;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
               ],
               sectionHeader('Insurance Details'),
               dropdownField(
@@ -672,22 +764,23 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 (value) {
                   setState(() {
                     _selectedInsuranceProduct = value;
+                    _fetchInsuranceProductDetails(value!);
                     _insuranceProductId = _insuranceProductsList.firstWhere(
                       (product) => product['productName'] == value,
                     )['id']; // Get and store product ID
                   });
-                  print("Selected Insurance Product ID: $_insuranceProductId");
                 },
               ),
               dropdownField(
                 'Cover Limit',
                 _selectedCoverLimit.toString(),
-                ["0", "100000", "300000", "500000", "1000000"],
+                ["0", "100000", "300000", "500000", "1000000", "2000000"],
                 (value) {
                   setState(() {
                     _selectedCoverLimit =
                         int.parse(value!); // Update Cover Limit
                   });
+
                   _calculatePremium();
                 },
               ),
@@ -726,8 +819,8 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                   onPressed: () {
                     _saveCovernote(context);
                   },
-                  style:
-                      ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 0, 129, 4)),
                   child:
                       const Text('Save', style: TextStyle(color: Colors.white)),
                 ),
