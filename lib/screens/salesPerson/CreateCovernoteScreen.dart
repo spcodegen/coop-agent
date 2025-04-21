@@ -74,10 +74,11 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   List<Map<String, dynamic>> _vehicleModelsList = []; // Store full model list
   List<String> _vehicleModels = []; // Store only names for dropdown
   String? _selectedVehicleModel; // Store selected model name
-  //multi files
-  List<File> _idDocImages = [];
-  List<File> _crImages = [];
-
+  //multi files list
+  final List<File> _idDocImages = [];
+  final List<File> _crImages = [];
+  final List<File> _selectedRegistrationFiles = [];
+  //boolean
   bool _isCoverLimitDisabled = false;
 
   @override
@@ -87,6 +88,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     _fetchVehicleMakes(); // Load vehicle makes from API
   }
 
+  // Function to pick a file
   Future<void> _pickFiles(bool isIdDoc) async {
     final List<XFile>? pickedFiles = await ImagePicker().pickMultiImage();
     if (pickedFiles != null && pickedFiles.isNotEmpty) {
@@ -142,33 +144,18 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     }
   }
 
-  // Function to pick a file
-  Future<void> _pickFile(bool isIdDoc) async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
+  // Pick Registration file
+  Future<void> _pickRegistrationFiles() async {
+    final List<XFile>? pickedFiles = await ImagePicker().pickMultiImage();
+    if (pickedFiles != null && pickedFiles.isNotEmpty) {
       setState(() {
-        if (isIdDoc) {
-          _idDocImage = File(pickedFile.path);
-        } else {
-          _crImage = File(pickedFile.path);
-        }
+        _selectedRegistrationFiles
+            .addAll(pickedFiles.map((file) => File(file.path)));
       });
     }
   }
 
-// Pick Registration file
-  Future<void> _pickRegistrationFile() async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _selectedRegistrationFile = File(pickedFile.path);
-      });
-    }
-  }
-
-// Function to fetch vehicle makes
+  // Function to fetch vehicle makes
   Future<void> _fetchVehicleMakes() async {
     const String apiUrl = '${AppConfig.baseURL}/vehicle_make/getAllActive';
 
@@ -650,30 +637,8 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                     onPressed: () => _pickFiles(true),
                     child: Text('Attach ID Docs'),
                   ),
-                  if (_idDocImage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'File Selected: ${_idDocImage!.path.split('/').last}',
-                              style: TextStyle(
-                                  color: const Color.fromARGB(255, 40, 2, 255),
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.delete, color: Colors.red),
-                            onPressed: () {
-                              setState(() {
-                                _idDocImage = null;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+                  if (_idDocImages.isNotEmpty)
+                    buildFileList(_idDocImages, true),
                 ],
               ] else if (_selectedCustomerType == 'Corporate') ...[
                 const Text(
@@ -688,35 +653,9 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 ),
                 if (_selectedDocument == 'Available') ...[
                   ElevatedButton(
-                      onPressed: () => _pickFile(false),
+                      onPressed: () => _pickFiles(false),
                       child: Text('Attach CR Doc')),
-                  if (_crImage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'File Selected: ${_crImage!.path.split('/').last}',
-                              style: TextStyle(
-                                  color: const Color.fromARGB(255, 40, 2, 255),
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.delete,
-                              color: const Color.fromARGB(255, 230, 21, 6),
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _crImage = null;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+                  if (_crImages.isNotEmpty) buildFileList(_crImages, false),
                 ],
               ],
               sectionHeader('Vehicle Information'),
@@ -776,33 +715,38 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
               // Show attachment widget only if "Available" is selected
               if (_selectedRegistrationDocument == 'Available') ...[
                 ElevatedButton(
-                  onPressed: _pickRegistrationFile,
-                  child: const Text('Attach Document'),
+                  onPressed: _pickRegistrationFiles,
+                  child: const Text('Attach Documents'),
                 ),
-                if (_selectedRegistrationFile != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'File Selected: ${_selectedRegistrationFile!.path.split('/').last}',
-                            style: TextStyle(
-                                color: const Color.fromARGB(255, 40, 2, 255),
-                                fontWeight: FontWeight.bold),
-                          ),
+                if (_selectedRegistrationFiles.isNotEmpty)
+                  Column(
+                    children: _selectedRegistrationFiles.map((file) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 1.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'File: ${file.path.split('/').last}',
+                                style: const TextStyle(
+                                  color: Color.fromARGB(255, 30, 0, 201),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete,
+                                  color: Color.fromARGB(255, 202, 13, 0)),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedRegistrationFiles.remove(file);
+                                });
+                              },
+                            ),
+                          ],
                         ),
-                        IconButton(
-                          icon: Icon(Icons.delete,
-                              color: const Color.fromARGB(255, 230, 21, 6)),
-                          onPressed: () {
-                            setState(() {
-                              _crImage = null;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
+                      );
+                    }).toList(),
                   ),
               ],
               sectionHeader('Insurance Details'),
@@ -905,7 +849,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     );
   }
 
-  //
+  //File widget
   Widget buildFileList(List<File> files, bool isIdDoc) {
     return Column(
       children: files.asMap().entries.map((entry) {
@@ -919,13 +863,14 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 child: Text(
                   'File: ${file.path.split('/').last}',
                   style: TextStyle(
-                    color: Colors.blue,
+                    color: Color.fromARGB(255, 30, 0, 201),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.delete, color: Colors.red),
+                icon:
+                    Icon(Icons.delete, color: Color.fromARGB(255, 202, 13, 0)),
                 onPressed: () => _removeFile(isIdDoc, index),
               ),
             ],
