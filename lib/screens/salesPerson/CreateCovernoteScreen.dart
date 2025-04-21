@@ -37,6 +37,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   String? _selectedDocument;
   String? _selectedPaymentMethod;
   String? _selectedRegistrationDocument;
+  String? _selectedVehicleType;
 
   // Date Pickers
   DateTime? _validFrom;
@@ -48,8 +49,16 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   File? _selectedRegistrationFile;
 
   // Dropdown options
-  final List<String> _title = ['Mr', 'Mrs', 'Miss'];
+  final List<String> _title = ['MR', 'MRS', 'MISS'];
   final List<String> _customerTypes = ['Individual', 'Corporate'];
+  final List<String> _vehicleTypes = [
+    'CAR',
+    'VAN',
+    'MOTOR CYCLE',
+    'THREE WHEELER',
+    'BUS',
+    'OTHER'
+  ];
   // Store vehicle makes as a list of maps to hold name and ID
   List<Map<String, dynamic>> _vehicleMakes = [];
   List<String> _insuranceProducts = []; // Empty initially
@@ -65,12 +74,40 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   List<Map<String, dynamic>> _vehicleModelsList = []; // Store full model list
   List<String> _vehicleModels = []; // Store only names for dropdown
   String? _selectedVehicleModel; // Store selected model name
+  //multi files
+  List<File> _idDocImages = [];
+  List<File> _crImages = [];
+
+  bool _isCoverLimitDisabled = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchInsuranceProducts(); // Fetch data when screen loads
+    //_fetchInsuranceProducts(); // Fetch data when screen loads
     _fetchVehicleMakes(); // Load vehicle makes from API
+  }
+
+  Future<void> _pickFiles(bool isIdDoc) async {
+    final List<XFile>? pickedFiles = await ImagePicker().pickMultiImage();
+    if (pickedFiles != null && pickedFiles.isNotEmpty) {
+      setState(() {
+        if (isIdDoc) {
+          _idDocImages.addAll(pickedFiles.map((file) => File(file.path)));
+        } else {
+          _crImages.addAll(pickedFiles.map((file) => File(file.path)));
+        }
+      });
+    }
+  }
+
+  void _removeFile(bool isIdDoc, int index) {
+    setState(() {
+      if (isIdDoc) {
+        _idDocImages.removeAt(index);
+      } else {
+        _crImages.removeAt(index);
+      }
+    });
   }
 
   // Function to select date
@@ -305,7 +342,10 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
 
   // Fetch Insurance Products
   Future<void> _fetchInsuranceProducts() async {
-    String apiUrl = "${AppConfig.baseURL}/insurance_product/getAllActive";
+    if (_selectedVehicleType == null || _selectedVehicleType!.isEmpty) return;
+
+    String apiUrl =
+        "http://172.21.112.133:9011/insurance_product/getByVehicleType/$_selectedVehicleType";
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
@@ -328,6 +368,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
               .map((product) => product['productName'].toString())
               .toList(); // Store only names for dropdown
           _insuranceProductId = null; // Reset selected product ID
+          _selectedInsuranceProduct = null; // Clear selection if any
         });
       }
     } catch (e) {
@@ -559,7 +600,10 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 'Customer Type',
                 _selectedCustomerType,
                 _customerTypes,
-                (value) => setState(() => _selectedCustomerType = value),
+                (value) => setState(
+                  () => _selectedCustomerType = value,
+                ),
+                isDisabled: false,
               ),
               if (_selectedCustomerType == 'Individual') ...[
                 textFieldService(
@@ -576,7 +620,10 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                   'Title',
                   _selectedTitle,
                   _title,
-                  (value) => setState(() => _selectedTitle = value),
+                  (value) => setState(
+                    () => _selectedTitle = value,
+                  ),
+                  isDisabled: false,
                 ),
                 textField('Full Name', _fullNameController),
               ] else if (_selectedCustomerType == 'Corporate') ...[
@@ -600,8 +647,8 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 ),
                 if (_selectedDocument == 'Available') ...[
                   ElevatedButton(
-                    onPressed: () => _pickFile(true),
-                    child: Text('Attach ID Doc'),
+                    onPressed: () => _pickFiles(true),
+                    child: Text('Attach ID Docs'),
                   ),
                   if (_idDocImage != null)
                     Padding(
@@ -698,6 +745,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                         _selectedVehicleMakeId!); // Fetch vehicle models
                   });
                 },
+                isDisabled: false,
               ),
               dropdownField(
                 'Vehicle Model',
@@ -711,6 +759,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                     )['id']; // Store Model ID
                   });
                 },
+                isDisabled: false,
               ),
               textField('Engine No', _engineNoController),
               // Certificate of Registration Documents Section
@@ -758,18 +807,41 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
               ],
               sectionHeader('Insurance Details'),
               dropdownField(
+                'Vehicle Type',
+                _selectedVehicleType,
+                _vehicleTypes,
+                (value) {
+                  setState(() {
+                    _selectedVehicleType = value;
+                    _fetchInsuranceProducts(); // Load insurance products based on vehicle type
+                  });
+                },
+                isDisabled: false,
+              ),
+              dropdownField(
                 'Insurance Product',
                 _selectedInsuranceProduct,
                 _insuranceProducts,
                 (value) {
                   setState(() {
                     _selectedInsuranceProduct = value;
+
+                    // Disable cover limit for specific products
+                    if (value == "THIRD PARTY PRIVATE CAR" ||
+                        value == "THIRD PARTY PRIVATE CAR (SPECIAL)") {
+                      _isCoverLimitDisabled = true;
+                      _selectedCoverLimit = 0;
+                    } else {
+                      _isCoverLimitDisabled = false;
+                    }
+
                     _fetchInsuranceProductDetails(value!);
                     _insuranceProductId = _insuranceProductsList.firstWhere(
                       (product) => product['productName'] == value,
                     )['id']; // Get and store product ID
                   });
                 },
+                isDisabled: false,
               ),
               dropdownField(
                 'Cover Limit',
@@ -783,6 +855,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
 
                   _calculatePremium();
                 },
+                isDisabled: _isCoverLimitDisabled,
               ),
               textField(
                 'Total Premium',
@@ -829,6 +902,36 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  //
+  Widget buildFileList(List<File> files, bool isIdDoc) {
+    return Column(
+      children: files.asMap().entries.map((entry) {
+        int index = entry.key;
+        File file = entry.value;
+        return Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'File: ${file.path.split('/').last}',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete, color: Colors.red),
+                onPressed: () => _removeFile(isIdDoc, index),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -899,7 +1002,8 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
 
   // Dropdown Widget
   Widget dropdownField(String label, String? value, List<String> items,
-      Function(String?) onChanged) {
+      Function(String?) onChanged,
+      {required bool isDisabled}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: DropdownButtonFormField<String>(
@@ -909,7 +1013,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
         items: items
             .map((item) => DropdownMenuItem(value: item, child: Text(item)))
             .toList(),
-        onChanged: onChanged,
+        onChanged: isDisabled ? null : onChanged, // Disable if needed
         validator: (value) => value == null ? 'Please select $label' : null,
         isExpanded: true,
       ),
