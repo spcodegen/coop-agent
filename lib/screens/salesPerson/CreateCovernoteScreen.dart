@@ -76,7 +76,9 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   String? _selectedVehicleModel; // Store selected model name
   //multi files list
   final List<File> _idDocImages = [];
+  final List<File> _brDocImages = [];
   final List<File> _crImages = [];
+
   final List<File> _selectedRegistrationFiles = [];
   //boolean
   bool _isCoverLimitDisabled = false;
@@ -84,7 +86,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   @override
   void initState() {
     super.initState();
-    //_fetchInsuranceProducts(); // Fetch data when screen loads
     _fetchVehicleMakes(); // Load vehicle makes from API
   }
 
@@ -96,7 +97,8 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
         if (isIdDoc) {
           _idDocImages.addAll(pickedFiles.map((file) => File(file.path)));
         } else {
-          _crImages.addAll(pickedFiles.map((file) => File(file.path)));
+          //_crImages.addAll(pickedFiles.map((file) => File(file.path)));
+          _brDocImages.addAll(pickedFiles.map((file) => File(file.path)));
         }
       });
     }
@@ -107,7 +109,8 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       if (isIdDoc) {
         _idDocImages.removeAt(index);
       } else {
-        _crImages.removeAt(index);
+        //_crImages.removeAt(index);
+        _brDocImages.removeAt(index);
       }
     });
   }
@@ -149,8 +152,9 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     final List<XFile>? pickedFiles = await ImagePicker().pickMultiImage();
     if (pickedFiles != null && pickedFiles.isNotEmpty) {
       setState(() {
-        _selectedRegistrationFiles
-            .addAll(pickedFiles.map((file) => File(file.path)));
+        _crImages.addAll(pickedFiles.map((file) => File(file.path)));
+        // _selectedRegistrationFiles
+        //     .addAll(pickedFiles.map((file) => File(file.path)));
       });
     }
   }
@@ -332,7 +336,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     if (_selectedVehicleType == null || _selectedVehicleType!.isEmpty) return;
 
     String apiUrl =
-        "http://172.21.112.133:9011/insurance_product/getByVehicleType/$_selectedVehicleType";
+        "${AppConfig.baseURL}/insurance_product/getByVehicleType/$_selectedVehicleType";
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
@@ -446,26 +450,22 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       "branchName": branchName,
       "coverNoteReason": "",
       "customer": {
-        "address": _addressController.text.isNotEmpty
-            ? _addressController.text
-            : "N/A",
+        "address":
+            _addressController.text.isNotEmpty ? _addressController.text : "",
         "customerType": _selectedCustomerType,
-        "fullName": _fullNameController.text.isNotEmpty
-            ? _fullNameController.text
-            : "N/A",
-        "mobileNo": _mobileController.text.isNotEmpty
-            ? _mobileController.text
-            : "0000000000",
-        "nicNo": _nicController.text.isNotEmpty ? _nicController.text : "N/A",
-        "passportNo": _passportController.text.isNotEmpty
-            ? _passportController.text
-            : "N/A",
+        "fullName":
+            _fullNameController.text.isNotEmpty ? _fullNameController.text : "",
+        "mobileNo":
+            _mobileController.text.isNotEmpty ? _mobileController.text : "",
+        "nicNo": _nicController.text.isNotEmpty ? _nicController.text : "",
+        "passportNo":
+            _passportController.text.isNotEmpty ? _passportController.text : "",
         "bizRegNo": "",
         "idDocImage": false,
         "vatRegNo": "",
         "telephoneNo": _telephoneController.text.isNotEmpty
             ? _telephoneController.text
-            : "N/A",
+            : "",
         "title": _selectedTitle,
         "isCreditAllowed": true,
         "creditLimit": 50000.00
@@ -489,16 +489,15 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       "vehicleDetails": {
         "chassisNo": _chassisNoController.text.isNotEmpty
             ? _chassisNoController.text
-            : "N/A",
+            : "",
         "crImage": false,
-        "engineNo": _engineNoController.text.isNotEmpty
-            ? _engineNoController.text
-            : "N/A",
+        "engineNo":
+            _engineNoController.text.isNotEmpty ? _engineNoController.text : "",
         "vehicleMakeId": _selectedVehicleMakeId,
         "vehicleModelId": _selectedVehicleModelId,
         "vehicleNo": _vehicleNoController.text.isNotEmpty
             ? _vehicleNoController.text
-            : "N/A"
+            : ""
       }
     };
 
@@ -506,7 +505,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       // Convert the JSON object to a string
       String jsonString = jsonEncode(coverNoteDetailsRequest);
 
-      //print("jsonString : " + jsonString);
+      // print("jsonString : " + jsonString);
 
       // Create Multipart Request
       var request = http.MultipartRequest(
@@ -522,25 +521,30 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       // Add JSON data as a form field
       request.fields["coverNoteDetailsRequest"] = jsonString;
 
-      // Attach files if available
-      if (_idDocImage != null) {
+      // Attach multiple ID Doc Images
+      for (int i = 0; i < _idDocImages.length; i++) {
         request.files.add(await http.MultipartFile.fromPath(
-          'idDocImageRequest', // Key name for API
-          _idDocImage!.path,
+          'idDocImageRequest', // Keep key consistent or update if API expects array format
+          _idDocImages[i].path,
+          filename: 'id_doc_$i.jpg',
         ));
       }
 
-      if (_crImage != null) {
+      // Attach multiple CR Images
+      for (int i = 0; i < _brDocImages.length; i++) {
         request.files.add(await http.MultipartFile.fromPath(
-          'idDocImageRequest', // Key name for API
-          _crImage!.path,
+          'idDocImageRequest', // Use correct key based on backend
+          _brDocImages[i].path,
+          filename: 'br_image_$i.jpg',
         ));
       }
 
-      if (_selectedRegistrationFile != null) {
+      // Attach multiple Registration Documents
+      for (int i = 0; i < _crImages.length; i++) {
         request.files.add(await http.MultipartFile.fromPath(
-          'crImageRequest', // Key name for API
-          _selectedRegistrationFile!.path,
+          'crImageRequest', // Change this key if your backend expects a specific name
+          _crImages[i].path,
+          filename: 'cr_image_$i.jpg',
         ));
       }
 
@@ -549,7 +553,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       var responseBody = await response.stream.bytesToString();
 
       //print("Response Status Code: ${response.statusCode}");
-      //print("Response Body: $responseBody");
+      print("Response Body: $responseBody");
 
       if (context.mounted) {
         if (response.statusCode == 200) {
@@ -654,8 +658,9 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 if (_selectedDocument == 'Available') ...[
                   ElevatedButton(
                       onPressed: () => _pickFiles(false),
-                      child: Text('Attach CR Doc')),
-                  if (_crImages.isNotEmpty) buildFileList(_crImages, false),
+                      child: Text('Attach BR Docs')),
+                  if (_brDocImages.isNotEmpty)
+                    buildFileList(_brDocImages, false),
                 ],
               ],
               sectionHeader('Vehicle Information'),
@@ -716,11 +721,11 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
               if (_selectedRegistrationDocument == 'Available') ...[
                 ElevatedButton(
                   onPressed: _pickRegistrationFiles,
-                  child: const Text('Attach Documents'),
+                  child: const Text('Attach CR'),
                 ),
-                if (_selectedRegistrationFiles.isNotEmpty)
+                if (_crImages.isNotEmpty)
                   Column(
-                    children: _selectedRegistrationFiles.map((file) {
+                    children: _crImages.map((file) {
                       return Padding(
                         padding: const EdgeInsets.only(top: 1.0),
                         child: Row(
@@ -739,7 +744,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                                   color: Color.fromARGB(255, 202, 13, 0)),
                               onPressed: () {
                                 setState(() {
-                                  _selectedRegistrationFiles.remove(file);
+                                  _crImages.remove(file);
                                 });
                               },
                             ),
