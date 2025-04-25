@@ -1,3 +1,4 @@
+import 'package:coop_agent/screens/salesPerson/AccidentCover.dart';
 import 'package:coop_agent/screens/salesPerson/CovernoteListScreen.dart';
 import 'package:coop_agent/screens/salesPerson/CreateCovernoteScreen.dart';
 import 'package:coop_agent/screens/login_screen.dart';
@@ -58,10 +59,16 @@ class _HomescreenState extends State<Homescreen> {
                   _setScreen(const CreateCovernoteScreen(), "Create Covernote"),
             ),
             ListTile(
-              leading: const Icon(Icons.list),
+              leading: const Icon(Icons.list_alt_outlined),
               title: const Text('Covernote List'),
               onTap: () =>
                   _setScreen(const CovernoteListScreen(), "Covernote List"),
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_document),
+              title: const Text('Personal Accident Cover'),
+              onTap: () =>
+                  _setScreen(const AccidentCover(), "Personal Accident Cover"),
             ),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),

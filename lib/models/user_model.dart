@@ -10,6 +10,7 @@ class UserModel {
   final String modifiedDateTime;
   final String isDeleted;
   final String status;
+  final String coopCityUser; // NEW FIELD
   final SalesPersonDetails salesPersonDetails;
 
   UserModel({
@@ -22,6 +23,7 @@ class UserModel {
     required this.modifiedDateTime,
     required this.isDeleted,
     required this.status,
+    required this.coopCityUser, // NEW FIELD
     required this.salesPersonDetails,
   });
 
@@ -37,6 +39,7 @@ class UserModel {
       modifiedDateTime: json['modifiedDateTime'],
       isDeleted: json['isDeleted'],
       status: json['status'],
+      coopCityUser: json['coopCityUser'], // NEW FIELD
       salesPersonDetails:
           SalesPersonDetails.fromJson(json['salesPersonDetails']),
     );
@@ -53,6 +56,7 @@ class UserModel {
       "modifiedDateTime": modifiedDateTime,
       "isDeleted": isDeleted,
       "status": status,
+      "coopCityUser": coopCityUser, // NEW FIELD
       "salesPersonDetails": salesPersonDetails.toJson(),
     };
   }

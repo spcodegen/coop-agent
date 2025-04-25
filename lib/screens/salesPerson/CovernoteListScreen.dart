@@ -127,8 +127,6 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
         final directory = await getApplicationDocumentsDirectory();
         final file = File('${directory.path}/$coverNoteNo.pdf');
         await file.writeAsBytes(bytes);
-
-        // Open the downloaded PDF
         await OpenFile.open(file.path);
       } else {
         setState(() {
@@ -144,6 +142,9 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final DataTableSource dataSource =
+        CovernoteDataSource(_covernoteList, _downloadAndOpenPDF);
+
     return Scaffold(
       body: Stack(
         children: [
@@ -156,9 +157,10 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
           Positioned.fill(
             child: Container(
               color: Colors.black.withOpacity(0.6),
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(5.0),
               child: Column(
                 children: [
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
@@ -208,64 +210,91 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
                     ),
                   if (!_isLoading && _covernoteList.isNotEmpty)
                     Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.vertical,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.85),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 8,
-                                  spreadRadius: 2,
-                                ),
-                              ],
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.85),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 8,
+                              spreadRadius: 2,
                             ),
-                            padding: const EdgeInsets.all(20),
-                            child: DataTable(
-                              border: TableBorder.all(color: Colors.grey),
-                              columns: const [
-                                DataColumn(label: Text('Cover Note No')),
-                                DataColumn(label: Text('Branch')),
-                                DataColumn(label: Text('Customer Name')),
-                                DataColumn(label: Text('NIC')),
-                                DataColumn(label: Text('Valid From')),
-                                DataColumn(label: Text('Valid To')),
-                                DataColumn(label: Text('Created Date')),
-                                DataColumn(label: Text('Print')),
-                              ],
-                              rows: _covernoteList.map((covernote) {
-                                return DataRow(cells: [
-                                  DataCell(Text(
-                                      covernote['coverNoteNo'].toString())),
-                                  DataCell(
-                                      Text(covernote['branchName'].toString())),
-                                  DataCell(
-                                      Text(covernote['fullName'].toString())),
-                                  DataCell(Text(covernote['nicNo'].toString())),
-                                  DataCell(
-                                      Text(covernote['validFrom'].toString())),
-                                  DataCell(
-                                      Text(covernote['validTo'].toString())),
-                                  DataCell(Text(
-                                      covernote['createdDate'].toString())),
-                                  DataCell(
-                                    IconButton(
-                                      icon: const Icon(Icons.print,
-                                          color: Colors.blue),
-                                      onPressed: () {
-                                        _downloadAndOpenPDF(
-                                            covernote['coverNoteNo']);
-                                      },
-                                    ),
-                                  ),
-                                ]);
-                              }).toList(),
-                            ),
-                          ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(0),
+                        child: PaginatedDataTable(
+                          header: const Text('Covernote Records'),
+                          rowsPerPage: 10,
+                          headingRowColor:
+                              MaterialStateProperty.all(Colors.blueGrey[50]),
+                          columns: const [
+                            DataColumn(
+                                label: Text(
+                              'Cover Note No',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
+                            )),
+                            DataColumn(
+                                label: Text(
+                              'Branch',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
+                            )),
+                            DataColumn(
+                                label: Text(
+                              'Customer Name',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
+                            )),
+                            DataColumn(
+                                label: Text(
+                              'NIC',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
+                            )),
+                            DataColumn(
+                                label: Text(
+                              'Valid From',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
+                            )),
+                            DataColumn(
+                                label: Text(
+                              'Valid To',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
+                            )),
+                            DataColumn(
+                                label: Text(
+                              'Created Date',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
+                            )),
+                            DataColumn(
+                                label: Text(
+                              'Print',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
+                            )),
+                          ],
+                          source: dataSource,
                         ),
                       ),
                     ),
@@ -277,4 +306,39 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
       ),
     );
   }
+}
+
+class CovernoteDataSource extends DataTableSource {
+  final List<Map<String, dynamic>> covernoteList;
+  final Function(String) onPrint;
+
+  CovernoteDataSource(this.covernoteList, this.onPrint);
+
+  @override
+  DataRow? getRow(int index) {
+    if (index >= covernoteList.length) return null;
+    final covernote = covernoteList[index];
+    return DataRow(cells: [
+      DataCell(Text(covernote['coverNoteNo'].toString())),
+      DataCell(Text(covernote['branchName'].toString())),
+      DataCell(Text(covernote['fullName'].toString())),
+      DataCell(Text(covernote['nicNo'].toString())),
+      DataCell(Text(covernote['validFrom'].toString())),
+      DataCell(Text(covernote['validTo'].toString())),
+      DataCell(Text(covernote['createdDate'].toString())),
+      DataCell(
+        IconButton(
+          icon: const Icon(Icons.print, color: Colors.blue),
+          onPressed: () => onPrint(covernote['coverNoteNo']),
+        ),
+      ),
+    ]);
+  }
+
+  @override
+  bool get isRowCountApproximate => false;
+  @override
+  int get rowCount => covernoteList.length;
+  @override
+  int get selectedRowCount => 0;
 }

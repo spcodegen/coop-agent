@@ -51,20 +51,18 @@ class _LoginScreenState extends State<LoginScreen> {
         String token = data['token'];
         UserModel user = UserModel.fromJson(data['user']);
 
-        String role = user.roles.isNotEmpty ? user.roles.first.name : '';
-
         if (token.isNotEmpty) {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setString('token', token);
           await prefs.setString('user', jsonEncode(user.toJson()));
           await prefs.setString('slcBranchDescription',
               user.salesPersonDetails.slcBranchDescription);
+          await prefs.setString(
+              'coopCityUser', user.coopCityUser); // ✅ Save coopCityUser
 
-          Widget nextScreen =
-              role == 'ADMIN' ? const Homescreenadmin() : const Homescreen();
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => nextScreen),
+            MaterialPageRoute(builder: (context) => const Homescreen()),
           );
         } else {
           setState(() {
@@ -110,15 +108,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       fit: BoxFit.cover,
                       width: 100,
                     ),
+                    const SizedBox(height: 10),
                     const Text(
                       "LOGIN",
                       style: TextStyle(
-                        fontSize: 34,
+                        fontSize: 30,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     Form(
                       key: _formKey,
                       child: Padding(

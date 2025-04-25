@@ -43,11 +43,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   DateTime? _validFrom;
   DateTime? _validTo;
 
-  //attachment document
-  File? _idDocImage;
-  File? _crImage;
-  File? _selectedRegistrationFile;
-
   // Dropdown options
   final List<String> _title = ['MR', 'MRS', 'MISS'];
   final List<String> _customerTypes = ['Individual', 'Corporate'];
@@ -74,13 +69,12 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   List<Map<String, dynamic>> _vehicleModelsList = []; // Store full model list
   List<String> _vehicleModels = []; // Store only names for dropdown
   String? _selectedVehicleModel; // Store selected model name
-  //multi files list
+  //multiple attachment document
   final List<File> _idDocImages = [];
   final List<File> _brDocImages = [];
   final List<File> _crImages = [];
 
-  final List<File> _selectedRegistrationFiles = [];
-  //boolean
+  //boolean for dropdown disable
   bool _isCoverLimitDisabled = false;
 
   @override
@@ -97,7 +91,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
         if (isIdDoc) {
           _idDocImages.addAll(pickedFiles.map((file) => File(file.path)));
         } else {
-          //_crImages.addAll(pickedFiles.map((file) => File(file.path)));
           _brDocImages.addAll(pickedFiles.map((file) => File(file.path)));
         }
       });
@@ -109,7 +102,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       if (isIdDoc) {
         _idDocImages.removeAt(index);
       } else {
-        //_crImages.removeAt(index);
         _brDocImages.removeAt(index);
       }
     });
@@ -153,8 +145,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     if (pickedFiles != null && pickedFiles.isNotEmpty) {
       setState(() {
         _crImages.addAll(pickedFiles.map((file) => File(file.path)));
-        // _selectedRegistrationFiles
-        //     .addAll(pickedFiles.map((file) => File(file.path)));
       });
     }
   }
@@ -553,13 +543,14 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       var responseBody = await response.stream.bytesToString();
 
       //print("Response Status Code: ${response.statusCode}");
-      print("Response Body: $responseBody");
+      // print("Response Body: $responseBody");
 
       if (context.mounted) {
         if (response.statusCode == 200) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Covernote Saved Successfully!")),
           );
+          _clearForm(); // <- clear the form here
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Failed to Save Covernote: $responseBody")),
@@ -574,6 +565,54 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
         );
       }
     }
+  }
+
+  void _clearForm() {
+    // Clear controllers
+    _nicController.clear();
+    _passportController.clear();
+    _fullNameController.clear();
+    _addressController.clear();
+    _telephoneController.clear();
+    _mobileController.clear();
+    _vehicleNoController.clear();
+    _chassisNoController.clear();
+    _engineNoController.clear();
+    _totalPremiumController.clear();
+    _validDaysController.text = "14";
+
+    // Reset dropdown selections
+    _selectedCustomerType = 'Individual';
+    _selectedTitle = null;
+    _selectedVehicleMake = null;
+    _selectedVehicleMakeId = null;
+    _selectedVehicleModel = null;
+    _selectedVehicleModelId = null;
+    _selectedVehicleType = null;
+    _selectedInsuranceProduct = null;
+    _selectedCoverLimit = 0;
+    _selectedPaymentMethod = 'CARD';
+    _selectedDocument = null;
+    _selectedRegistrationDocument = null;
+
+    // Clear file lists
+    _idDocImages.clear();
+    _brDocImages.clear();
+    _crImages.clear();
+
+    // Clear product lists
+    _insuranceProducts.clear();
+    _insuranceProductsList.clear();
+
+    // Reset cover limit state
+    _isCoverLimitDisabled = false;
+
+    // Reset dates
+    _validFrom = null;
+    _validTo = null;
+
+    // Refresh UI
+    setState(() {});
   }
 
   @override
