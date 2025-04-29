@@ -16,6 +16,22 @@ class _HomescreenState extends State<Homescreen> {
   Widget _selectedScreen = const CovernoteListScreen();
   String _screenTitle = "Covernote List"; // ✅ Default title
 
+  bool _isCoopCityUser = false; // 👈 New variable
+
+  @override
+  void initState() {
+    super.initState();
+    _checkCoopCityUser();
+  }
+
+  Future<void> _checkCoopCityUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? coopCityUser = prefs.getString('coopCityUser');
+    setState(() {
+      _isCoopCityUser = (coopCityUser == "YES");
+    });
+  }
+
   void _setScreen(Widget screen, String title) {
     setState(() {
       _selectedScreen = screen;
@@ -64,12 +80,13 @@ class _HomescreenState extends State<Homescreen> {
               onTap: () =>
                   _setScreen(const CovernoteListScreen(), "Covernote List"),
             ),
-            ListTile(
-              leading: const Icon(Icons.edit_document),
-              title: const Text('Personal Accident Cover'),
-              onTap: () =>
-                  _setScreen(const AccidentCover(), "Personal Accident Cover"),
-            ),
+            if (_isCoopCityUser) // ✅ Only show if user is CoopCityUser
+              ListTile(
+                leading: const Icon(Icons.edit_document),
+                title: const Text('Personal Accident Cover'),
+                onTap: () => _setScreen(
+                    const AccidentCover(), "Personal Accident Cover"),
+              ),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text(

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:coop_agent/screens/HomeScreen.dart';
-import 'package:coop_agent/screens/admin/HomeScreenAdmin.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -131,7 +130,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ? 'Please enter User Name'
                                   : null,
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(
+                              height: 14,
+                            ),
                             _buildTextField(
                               controller: _passwordController,
                               obscureText: true,
@@ -140,13 +141,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ? 'Please enter Password'
                                   : null,
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(
+                              height: 10,
+                            ),
                             if (_errorMessage != null)
                               Text(
                                 _errorMessage!,
                                 style: const TextStyle(color: Colors.red),
                               ),
-                            const SizedBox(height: 25),
+                            const SizedBox(
+                              height: 25,
+                            ),
                             SizedBox(
                               width: 280,
                               height: 50,
