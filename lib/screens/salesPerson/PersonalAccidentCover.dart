@@ -1,14 +1,19 @@
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // for date formatting
+import 'dart:convert';
 
-class AccidentCover extends StatefulWidget {
-  const AccidentCover({super.key});
+import 'package:coop_agent/services/config.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // for date formatting
+
+class PersonalAccidentCover extends StatefulWidget {
+  const PersonalAccidentCover({super.key});
 
   @override
-  State<AccidentCover> createState() => _AccidentCoverState();
+  State<PersonalAccidentCover> createState() => _PersonalAccidentCoverState();
 }
 
-class _AccidentCoverState extends State<AccidentCover> {
+class _PersonalAccidentCoverState extends State<PersonalAccidentCover> {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _fullNameController = TextEditingController();
@@ -123,11 +128,69 @@ class _AccidentCoverState extends State<AccidentCover> {
     }
   }
 
+  Future<void> _submitPersonalAccidentCover() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final String? coopCity = prefs.getString('coopCity');
+    final String? coopSociety = prefs.getString('coopSociety');
+    final String? token = prefs.getString('token'); // get token
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Authentication token not found.')),
+      );
+      return;
+    }
+
+    final Map<String, dynamic> requestBody = {
+      "benefitValue": int.tryParse(_coverValueController.text) ?? 0,
+      "billAmount": _billAmountController.text,
+      "billDate": "${_billDateController.text}T00:00:00.000Z",
+      "billNo": _billNoController.text,
+      "coopCity": coopCity,
+      "coopSociety": coopSociety,
+      "dob": _dobController.text,
+      "fullName": _fullNameController.text,
+      "phoneNo": _mobileNoController.text,
+      "nameWithInitials": _initialsController.text,
+      "nicNo": _nicController.text,
+      "premiumValue": int.tryParse(_premiumController.text) ?? 0,
+      "validFrom": _validFromController.text,
+      "validTo": _validToController.text,
+    };
+
+    final url = Uri.parse('${AppConfig.baseURL}/personal_accident_cover/save');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token', // add token to header
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Personal accident cover saved!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Failed to save. Error ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
   void _saveForm() {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Form saved successfully!')),
-      );
+      _submitPersonalAccidentCover();
     }
   }
 

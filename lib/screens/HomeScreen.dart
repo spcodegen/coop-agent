@@ -1,4 +1,4 @@
-import 'package:coop_agent/screens/salesPerson/AccidentCover.dart';
+import 'package:coop_agent/screens/salesPerson/PersonalAccidentCover.dart';
 import 'package:coop_agent/screens/salesPerson/CovernoteListScreen.dart';
 import 'package:coop_agent/screens/salesPerson/CreateCovernoteScreen.dart';
 import 'package:coop_agent/screens/login_screen.dart';
@@ -85,7 +85,7 @@ class _HomescreenState extends State<Homescreen> {
                 leading: const Icon(Icons.edit_document),
                 title: const Text('Personal Accident Cover'),
                 onTap: () => _setScreen(
-                    const AccidentCover(), "Personal Accident Cover"),
+                    const PersonalAccidentCover(), "Personal Accident Cover"),
               ),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),

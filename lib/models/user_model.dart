@@ -90,6 +90,8 @@ class SalesPersonDetails {
   final String slcBranchDescription;
   final int sfcLevel;
   final String? division;
+  final String? coopSociety; // NEW FIELD
+  final String? coopCity; // NEW FIELD
   final String createdBy;
   final String createdDateTime;
   final String modifiedBy;
@@ -105,6 +107,8 @@ class SalesPersonDetails {
     required this.slcBranchDescription,
     required this.sfcLevel,
     required this.division,
+    required this.coopSociety, // NEW FIELD
+    required this.coopCity, // NEW FIELD
     required this.createdBy,
     required this.createdDateTime,
     required this.modifiedBy,
@@ -122,6 +126,8 @@ class SalesPersonDetails {
       slcBranchDescription: json['slcBranchDescription'],
       sfcLevel: json['sfcLevel'],
       division: json['division'],
+      coopSociety: json['coopSociety'], // NEW FIELD
+      coopCity: json['coopCity'], // NEW FIELD
       createdBy: json['createdBy'],
       createdDateTime: json['createdDateTime'],
       modifiedBy: json['modifiedBy'],
@@ -140,6 +146,8 @@ class SalesPersonDetails {
       "slcBranchDescription": slcBranchDescription,
       "sfcLevel": sfcLevel,
       "division": division,
+      "coopSociety": coopSociety, // NEW FIELD
+      "coopCity": coopCity, // NEW FIELD
       "createdBy": createdBy,
       "createdDateTime": createdDateTime,
       "modifiedBy": modifiedBy,

@@ -58,6 +58,10 @@ class _LoginScreenState extends State<LoginScreen> {
               user.salesPersonDetails.slcBranchDescription);
           await prefs.setString(
               'coopCityUser', user.coopCityUser); // ✅ Save coopCityUser
+          await prefs.setString(
+              'coopSociety', user.salesPersonDetails.coopSociety ?? '');
+          await prefs.setString(
+              'coopCity', user.salesPersonDetails.coopCity ?? '');
 
           Navigator.pushReplacement(
             context,
