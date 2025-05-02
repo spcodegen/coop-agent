@@ -84,7 +84,10 @@ class _PersonalAccidentCoverState extends State<PersonalAccidentCover> {
     int premium = 0;
     int cover = 0;
 
-    if (billAmount >= 5000 && billAmount < 7500) {
+    if (billAmount >= 3000 && billAmount < 5000) {
+      premium = 30;
+      cover = 250000;
+    } else if (billAmount >= 5000 && billAmount < 7500) {
       premium = 50;
       cover = 500000;
     } else if (billAmount >= 7500 && billAmount < 10000) {
