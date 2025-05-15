@@ -29,11 +29,15 @@ class _PersonalAccidentCoverState extends State<PersonalAccidentCover> {
   final TextEditingController _validFromController = TextEditingController();
   final TextEditingController _validToController = TextEditingController();
 
+  bool _isLoading = false;
+  List<dynamic> _data = [];
+
   @override
   void initState() {
     super.initState();
     _billAmountController.addListener(_updatePremiumAndCover);
     _setValidDates();
+    _fetchData();
   }
 
   @override
@@ -197,6 +201,38 @@ class _PersonalAccidentCoverState extends State<PersonalAccidentCover> {
     }
   }
 
+  Future<void> _fetchData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    final response = await http.get(
+      Uri.parse('${AppConfig.baseURL}/personal_accident_cover/getAll'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      setState(() {
+        _data = jsonDecode(response.body);
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch data: ${response.body}')),
+      );
+    }
+  }
+
+  DataTableSource _dataSource() => _MyData(_data);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -246,7 +282,27 @@ class _PersonalAccidentCoverState extends State<PersonalAccidentCover> {
                   'Save',
                   style: TextStyle(color: Colors.white),
                 ),
-              )
+              ),
+              const SizedBox(height: 40),
+              _isLoading
+                  ? const CircularProgressIndicator()
+                  : PaginatedDataTable(
+                      header: const Text('Personal Accident Cover List'),
+                      rowsPerPage: 5,
+                      columns: const [
+                        DataColumn(label: Text('Full Name')),
+                        DataColumn(label: Text('NIC No')),
+                        DataColumn(label: Text('Date of Birth')),
+                        DataColumn(label: Text('Proposal No')),
+                        DataColumn(label: Text('Bill No')),
+                        DataColumn(label: Text('Bill Amount (LKR)')),
+                        DataColumn(label: Text('Bill Date')),
+                        DataColumn(label: Text('Premium Value (LKR)')),
+                        DataColumn(label: Text('Cover Value (LKR)')),
+                      ],
+                      source: _dataSource(),
+                    ),
+              const SizedBox(height: 30),
             ],
           ),
         ),
@@ -285,4 +341,35 @@ class _PersonalAccidentCoverState extends State<PersonalAccidentCover> {
       ),
     );
   }
+}
+
+class _MyData extends DataTableSource {
+  final List<dynamic> data;
+  _MyData(this.data);
+
+  @override
+  DataRow? getRow(int index) {
+    if (index >= data.length) return null;
+    final item = data[index];
+    return DataRow(cells: [
+      DataCell(Text(item['fullName'] ?? '')),
+      DataCell(Text(item['nicNo'] ?? '')),
+      DataCell(Text(item['dob']?.toString().split('T').first ?? '')),
+      DataCell(Text(item['proposalNo'] ?? '')),
+      DataCell(Text(item['billNo'] ?? '')),
+      DataCell(Text(item['billAmount']?.toString() ?? '')),
+      DataCell(Text(item['billDate']?.toString().split('T').first ?? '')),
+      DataCell(Text(item['premiumValue']?.toString() ?? '')),
+      DataCell(Text(item['benefitValue']?.toString() ?? '')),
+    ]);
+  }
+
+  @override
+  bool get isRowCountApproximate => false;
+
+  @override
+  int get rowCount => data.length;
+
+  @override
+  int get selectedRowCount => 0;
 }

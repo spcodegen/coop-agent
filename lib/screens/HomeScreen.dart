@@ -1,3 +1,4 @@
+import 'package:coop_agent/screens/salesPerson/ImageUploaderScreen.dart';
 import 'package:coop_agent/screens/salesPerson/PersonalAccidentCover.dart';
 import 'package:coop_agent/screens/salesPerson/CovernoteListScreen.dart';
 import 'package:coop_agent/screens/salesPerson/CreateCovernoteScreen.dart';
@@ -79,6 +80,12 @@ class _HomescreenState extends State<Homescreen> {
               title: const Text('Covernote List'),
               onTap: () =>
                   _setScreen(const CovernoteListScreen(), "Covernote List"),
+            ),
+            ListTile(
+              leading: const Icon(Icons.image),
+              title: const Text('Image Uploader'),
+              onTap: () =>
+                  _setScreen(const Imageuploaderscreen(), "Image Uploader"),
             ),
             if (_isCoopCityUser) // ✅ Only show if user is CoopCityUser
               ListTile(
