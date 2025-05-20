@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CreateCovernoteScreen extends StatefulWidget {
@@ -38,6 +41,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   String? _selectedPaymentMethod;
   String? _selectedRegistrationDocument;
   String? _selectedVehicleType;
+  String? globalCoverNoteNo;
 
   // Date Pickers
   DateTime? _validFrom;
@@ -543,10 +547,17 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       var responseBody = await response.stream.bytesToString();
 
       //print("Response Status Code: ${response.statusCode}");
-      // print("Response Body: $responseBody");
+      print("Response Body: $responseBody");
 
       if (context.mounted) {
         if (response.statusCode == 200) {
+          final Map<String, dynamic> responseJson = jsonDecode(responseBody);
+          final String? coverNoteNo = responseJson['coverNoteNo'];
+
+          if (coverNoteNo != null && coverNoteNo.isNotEmpty) {
+            globalCoverNoteNo = coverNoteNo; // ✅ Store globally
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Covernote Saved Successfully!")),
           );
@@ -613,6 +624,54 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
 
     // Refresh UI
     setState(() {});
+  }
+
+  Future<void> downloadAndOpenCoverNotePDF(
+      BuildContext context, String coverNoteNo) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Token not found. Please log in again.')),
+        );
+        return;
+      }
+
+      final url = Uri.parse(
+        'http://172.21.112.194:9012/cover_note_details/openCoverNotePDF/$coverNoteNo',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/pdf',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final bytes = response.bodyBytes;
+        final dir = await getTemporaryDirectory();
+        final filePath = '${dir.path}/cover_note_$coverNoteNo.pdf';
+
+        final file = File(filePath);
+        await file.writeAsBytes(bytes);
+
+        await OpenFile.open(filePath);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('Failed to fetch PDF. Status: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
   }
 
   @override
@@ -875,16 +934,74 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                   radioButton('CASH'),
                 ],
               ),
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    _saveCovernote(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 0, 129, 4)),
-                  child:
-                      const Text('Save', style: TextStyle(color: Colors.white)),
-                ),
+              SizedBox(
+                height: 10,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Existing Save Button
+                  ElevatedButton(
+                    onPressed: () {
+                      _saveCovernote(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF00712D),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 52,
+                        vertical: 15,
+                      ),
+                    ),
+                    child: const Text(
+                      'Save',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 20), // Spacing between buttons
+                  // New View PDF Button
+                  ElevatedButton(
+                    onPressed: () {
+                      if (globalCoverNoteNo != null &&
+                          globalCoverNoteNo!.isNotEmpty) {
+                        downloadAndOpenCoverNotePDF(
+                            context, globalCoverNoteNo!);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(
+                                  "No Covernote found. Please save one first.")),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF003092), // Blue color
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 15,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'View PDF',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(
+                height: 50,
               ),
             ],
           ),

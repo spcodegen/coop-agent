@@ -40,9 +40,11 @@ dependencies:
   shared_preferences: ^2.5.2
   url_launcher: ^6.3.1
   image_picker: ^1.1.2
-  file_picker: ^9.2.2
+  file_picker: ^10.1.9
   intl: ^0.20.2
   flutter_launcher_icons: ^0.14.3
+  google_fonts: ^6.2.1
+  permission_handler: ^12.0.0+1
 
 dev_dependencies:
   flutter_test:
@@ -77,6 +79,7 @@ flutter:
     - assets/images/logo.png
     - assets/images/loginback.png
     - assets/images/background-new.png
+    # - assets/fonts/  # Add this if not present
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -89,24 +92,24 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  fonts:
-    - family: Inter
-      fonts:
-        - asset: assets/fonts/Inter_28pt-Regular.ttf
-        - asset: assets/fonts/Inter_28pt-Black.ttf
-        - weight: 900
-        - asset: assets/fonts/Inter_28pt-ExtraBold.ttf
-        - weight: 800
-        - asset: assets/fonts/Inter_28pt-Bold.ttf
-        - weight: 700
-        - asset: assets/fonts/Inter_28pt-SemiBold.ttf
-        - weight: 600
-        - asset: assets/fonts/Inter_28pt-Medium.ttf
-        - weight: 500
-        - asset: assets/fonts/Inter_28pt-Light.ttf
-        - weight: 300
-        - asset: assets/fonts/Inter_28pt-ExtraLight.ttf
-        - weight: 200
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/Inter_28pt-Regular.ttf
+  #       - asset: assets/fonts/Inter_28pt-Black.ttf
+  #       - weight: 900
+  #       - asset: assets/fonts/Inter_28pt-ExtraBold.ttf
+  #       - weight: 800
+  #       - asset: assets/fonts/Inter_28pt-Bold.ttf
+  #       - weight: 700
+  #       - asset: assets/fonts/Inter_28pt-SemiBold.ttf
+  #       - weight: 600
+  #       - asset: assets/fonts/Inter_28pt-Medium.ttf
+  #       - weight: 500
+  #       - asset: assets/fonts/Inter_28pt-Light.ttf
+  #       - weight: 300
+  #       - asset: assets/fonts/Inter_28pt-ExtraLight.ttf
+  #       - weight: 200
 
 
 

@@ -39,6 +39,8 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
       String? token = prefs.getString('token');
       String? branchName = prefs.getString('slcBranchDescription');
 
+      print(token);
+
       if (token == null) {
         setState(() {
           _isLoading = false;

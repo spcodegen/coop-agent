@@ -81,12 +81,12 @@ class _HomescreenState extends State<Homescreen> {
               onTap: () =>
                   _setScreen(const CovernoteListScreen(), "Covernote List"),
             ),
-            ListTile(
-              leading: const Icon(Icons.image),
-              title: const Text('Image Uploader'),
-              onTap: () =>
-                  _setScreen(const Imageuploaderscreen(), "Image Uploader"),
-            ),
+            // ListTile(
+            //   leading: const Icon(Icons.image),
+            //   title: const Text('Image Uploader'),
+            //   onTap: () =>
+            //       _setScreen(const Imageuploaderscreen(), "Image Uploader"),
+            // ),
             if (_isCoopCityUser) // ✅ Only show if user is CoopCityUser
               ListTile(
                 leading: const Icon(Icons.edit_document),
