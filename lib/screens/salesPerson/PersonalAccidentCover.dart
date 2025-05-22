@@ -182,6 +182,23 @@ class _PersonalAccidentCoverState extends State<PersonalAccidentCover> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Personal accident cover saved!')),
         );
+
+        // ✅ Clear all text controllers
+        _coverValueController.clear();
+        _billAmountController.clear();
+        _billDateController.clear();
+        _billNoController.clear();
+        _dobController.clear();
+        _fullNameController.clear();
+        _mobileNoController.clear();
+        _initialsController.clear();
+        _nicController.clear();
+        _premiumController.clear();
+        _validFromController.clear();
+        _validToController.clear();
+
+        // ✅ Call fetch data after saving
+        await _fetchData();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -274,13 +291,19 @@ class _PersonalAccidentCoverState extends State<PersonalAccidentCover> {
               ElevatedButton(
                 onPressed: _saveForm,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 0, 173, 6),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                  backgroundColor: Color(0xFF00712D),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 52,
+                    vertical: 15,
+                  ),
                 ),
                 child: const Text(
                   'Save',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
               ),
               const SizedBox(height: 40),
@@ -336,6 +359,28 @@ class _PersonalAccidentCoverState extends State<PersonalAccidentCover> {
           if (value == null || value.trim().isEmpty) {
             return 'Please enter $label';
           }
+
+          if (label == 'NIC') {
+            if (value == null || value.isEmpty) return 'Enter NIC No';
+
+            final oldNicPattern = RegExp(r'^\d{9}[VvXx]$'); // e.g., 911042754V
+            final newNicPattern = RegExp(r'^\d{12}$'); // e.g., 197419202757
+
+            if (!oldNicPattern.hasMatch(value) &&
+                !newNicPattern.hasMatch(value)) {
+              return 'NIC No must be 9 digits followed by V/X or exactly 12 digits';
+            }
+
+            return null;
+          }
+
+          if (label == 'Mobile No') {
+            final regex = RegExp(r'^\d{10}$');
+            if (!regex.hasMatch(value)) {
+              return 'Mobile No must be exactly 10 digits';
+            }
+          }
+
           return null;
         },
       ),

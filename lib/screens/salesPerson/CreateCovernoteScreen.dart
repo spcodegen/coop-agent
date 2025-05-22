@@ -269,6 +269,44 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     }
   }
 
+  // Fetch Customer Details by Passport No
+  Future<void> _fetchCustomerDetailsByPassport(String passportNo) async {
+    final String apiUrl =
+        '${AppConfig.baseURL}/customer/getByPassportNo/$passportNo';
+
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+
+      if (token == null) return;
+
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        setState(() {
+          _nicController.text = data['nicNo'] ?? '';
+          _fullNameController.text = data['fullName'] ?? '';
+          _addressController.text = data['address'] ?? '';
+          _telephoneController.text = data['telephoneNo'] ?? '';
+          _mobileController.text = data['mobileNo'] ?? '';
+          _selectedTitle = data['title'] ?? null;
+        });
+      } else {
+        print('Failed to fetch: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching customer details: $e');
+    }
+  }
+
   // Fetch Vehicle Details by Vehicle Number
   Future<void> _fetchVehicleDetails(String vehicleNo) async {
     final String apiUrl =
@@ -460,7 +498,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
         "telephoneNo": _telephoneController.text.isNotEmpty
             ? _telephoneController.text
             : "",
-        "title": _selectedTitle,
+        "title": _selectedTitle ?? "",
         "isCreditAllowed": true,
         "creditLimit": 50000.00
       },
@@ -469,7 +507,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       "noOfValidDays": _validDaysController.text.isNotEmpty
           ? int.parse(_validDaysController.text)
           : 14,
-      "paymentMethod": _selectedPaymentMethod,
+      "paymentMethod": _selectedPaymentMethod ?? "CASH",
       "renewCount": 0,
       "sumInsured": 0,
       "propertyDamageCoverLimit": _selectedCoverLimit,
@@ -640,7 +678,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
       }
 
       final url = Uri.parse(
-        'http://172.21.112.194:9012/cover_note_details/openCoverNotePDF/$coverNoteNo',
+        '${AppConfig.baseURL}/cover_note_details/openCoverNotePDF/$coverNoteNo',
       );
 
       final response = await http.get(
@@ -674,6 +712,37 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     }
   }
 
+  String? validateNIC(String? value) {
+    if (value == null || value.isEmpty) return 'Enter NIC No';
+
+    final oldNicPattern = RegExp(r'^\d{9}[VXvx]$'); // e.g., 911042754V
+    final newNicPattern = RegExp(r'^\d{12}$'); // e.g., 197419202757
+
+    if (!oldNicPattern.hasMatch(value) && !newNicPattern.hasMatch(value)) {
+      return 'NIC No must be 9 digits + V/X or 12 digits';
+    }
+
+    return null;
+  }
+
+  String? validatePassport(String? value) {
+    if (value == null || value.isEmpty) return 'Enter Passport No';
+
+    final regex = RegExp(r'^[NDST]{1}\d{7}$');
+
+    if (!regex.hasMatch(value)) {
+      return 'Passport No must start with N, D, S, or T and have 7 digits (e.g., N1234567)';
+    }
+
+    return null;
+  }
+
+  String? validatePhone(String? value, String label) {
+    if (value == null || value.isEmpty) return 'Enter $label';
+    if (!RegExp(r'^\d{10}$').hasMatch(value)) return '$label must be 10 digits';
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -703,8 +772,18 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                       _fetchCustomerDetails(value);
                     }
                   },
+                  validator: validateNIC,
                 ),
-                textField('Passport No', _passportController),
+                textFieldService(
+                  'Passport No',
+                  _passportController,
+                  onChanged: (value) {
+                    if (value.length > 3) {
+                      _fetchCustomerDetailsByPassport(value);
+                    }
+                  },
+                  validator: validatePassport,
+                ),
                 dropdownField(
                   'Title',
                   _selectedTitle,
@@ -717,12 +796,22 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 textField('Full Name', _fullNameController),
               ] else if (_selectedCustomerType == 'Corporate') ...[
                 textField('Business Register No', TextEditingController()),
-                textField('VAT Register', TextEditingController()),
+                textField('VAT Register No', TextEditingController()),
                 textField('Company Name', TextEditingController()),
               ],
               textField('Address', _addressController),
-              textField('Telephone No', _telephoneController),
-              textField('Mobile No', _mobileController),
+              textField(
+                'Telephone No',
+                _telephoneController,
+                isNumber: true,
+                validator: (value) => validatePhone(value, 'Telephone No'),
+              ),
+              textField(
+                'Mobile No',
+                _mobileController,
+                isNumber: true,
+                validator: (value) => validatePhone(value, 'Mobile No'),
+              ),
               if (_selectedCustomerType == 'Individual') ...[
                 const Text(
                   'NIC/Passport Documents',
@@ -930,7 +1019,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
               ),
               Row(
                 children: [
-                  radioButton('CARD'),
                   radioButton('CASH'),
                 ],
               ),
@@ -943,7 +1031,9 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                   // Existing Save Button
                   ElevatedButton(
                     onPressed: () {
-                      _saveCovernote(context);
+                      if (_formKey.currentState!.validate()) {
+                        _saveCovernote(context);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF00712D),
@@ -1107,19 +1197,48 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   }
 
   // Dropdown Widget
-  Widget dropdownField(String label, String? value, List<String> items,
-      Function(String?) onChanged,
-      {required bool isDisabled}) {
+  // Widget dropdownField(String label, String? value, List<String> items,
+  //     Function(String?) onChanged,
+  //     {required bool isDisabled}) {
+  //   return Padding(
+  //     padding: const EdgeInsets.only(bottom: 10),
+  //     child: DropdownButtonFormField<String>(
+  //       value: value,
+  //       decoration:
+  //           InputDecoration(labelText: label, border: OutlineInputBorder()),
+  //       items: items
+  //           .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+  //           .toList(),
+  //       onChanged: isDisabled ? null : onChanged, // Disable if needed
+  //       validator: (value) => value == null ? 'Please select $label' : null,
+  //       isExpanded: true,
+  //     ),
+  //   );
+  // }
+
+  Widget dropdownField(
+    String label,
+    String? value,
+    List<String> items,
+    Function(String?) onChanged, {
+    required bool isDisabled,
+  }) {
+    // Ensure the value exists exactly once in the items list
+    final uniqueItems = items.toSet().toList(); // Remove duplicates
+    final safeValue = uniqueItems.contains(value) ? value : null;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: DropdownButtonFormField<String>(
-        value: value,
-        decoration:
-            InputDecoration(labelText: label, border: OutlineInputBorder()),
-        items: items
+        value: safeValue,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+        ),
+        items: uniqueItems
             .map((item) => DropdownMenuItem(value: item, child: Text(item)))
             .toList(),
-        onChanged: isDisabled ? null : onChanged, // Disable if needed
+        onChanged: isDisabled ? null : onChanged,
         validator: (value) => value == null ? 'Please select $label' : null,
         isExpanded: true,
       ),
@@ -1127,8 +1246,13 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   }
 
   // Text Field Widget nomle
-  Widget textField(String label, TextEditingController controller,
-      {bool isNumber = false, bool isDisabled = false}) {
+  Widget textField(
+    String label,
+    TextEditingController controller, {
+    bool isNumber = false,
+    bool isDisabled = false,
+    String? Function(String?)? validator,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: TextFormField(
@@ -1136,8 +1260,8 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         decoration:
             InputDecoration(labelText: label, border: OutlineInputBorder()),
-        validator: (value) =>
-            value == null || value.isEmpty ? 'Enter $label' : null,
+        validator: validator ??
+            (value) => value == null || value.isEmpty ? 'Enter $label' : null,
         enabled: !isDisabled, // Disable input if isDisabled is true
       ),
     );
@@ -1163,16 +1287,36 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   }
 
   //Service call textField widget
-  Widget textFieldService(String label, TextEditingController controller,
-      {Function(String)? onChanged}) {
+  // Widget textFieldService(String label, TextEditingController controller,
+  //     {Function(String)? onChanged}) {
+  //   return Padding(
+  //     padding: const EdgeInsets.only(bottom: 10),
+  //     child: TextFormField(
+  //       controller: controller,
+  //       decoration:
+  //           InputDecoration(labelText: label, border: OutlineInputBorder()),
+  //       validator: (value) =>
+  //           value == null || value.isEmpty ? 'Enter $label' : null,
+  //       onChanged: onChanged,
+  //     ),
+  //   );
+  // }
+
+  Widget textFieldService(
+    String label,
+    TextEditingController controller, {
+    Function(String)? onChanged,
+    String? Function(String?)? validator,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: TextFormField(
         controller: controller,
-        decoration:
-            InputDecoration(labelText: label, border: OutlineInputBorder()),
-        validator: (value) =>
-            value == null || value.isEmpty ? 'Enter $label' : null,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+        ),
+        validator: validator,
         onChanged: onChanged,
       ),
     );

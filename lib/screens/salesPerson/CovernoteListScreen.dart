@@ -211,7 +211,8 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
                       style: const TextStyle(color: Colors.red, fontSize: 16),
                     ),
                   if (!_isLoading && _covernoteList.isNotEmpty)
-                    Expanded(
+                    SizedBox(
+                      height: 600, // Set your desired height here
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.85),
@@ -224,10 +225,10 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
                             ),
                           ],
                         ),
-                        padding: const EdgeInsets.all(0),
+                        padding: const EdgeInsets.all(8),
                         child: PaginatedDataTable(
                           header: const Text('Covernote Records'),
-                          rowsPerPage: 10,
+                          rowsPerPage: 8,
                           headingRowColor:
                               MaterialStateProperty.all(Colors.blueGrey[50]),
                           columns: const [
@@ -235,65 +236,49 @@ class _CovernoteListScreenState extends State<CovernoteListScreen> {
                                 label: Text(
                               'Cover Note No',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 17,
-                              ),
+                                  fontWeight: FontWeight.bold, fontSize: 17),
                             )),
                             DataColumn(
                                 label: Text(
                               'Branch',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 17,
-                              ),
+                                  fontWeight: FontWeight.bold, fontSize: 17),
                             )),
                             DataColumn(
                                 label: Text(
                               'Customer Name',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 17,
-                              ),
+                                  fontWeight: FontWeight.bold, fontSize: 17),
                             )),
                             DataColumn(
                                 label: Text(
                               'NIC',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 17,
-                              ),
+                                  fontWeight: FontWeight.bold, fontSize: 17),
                             )),
                             DataColumn(
                                 label: Text(
                               'Valid From',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 17,
-                              ),
+                                  fontWeight: FontWeight.bold, fontSize: 17),
                             )),
                             DataColumn(
                                 label: Text(
                               'Valid To',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 17,
-                              ),
+                                  fontWeight: FontWeight.bold, fontSize: 17),
                             )),
                             DataColumn(
                                 label: Text(
                               'Created Date',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 17,
-                              ),
+                                  fontWeight: FontWeight.bold, fontSize: 17),
                             )),
                             DataColumn(
                                 label: Text(
                               'Print',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 17,
-                              ),
+                                  fontWeight: FontWeight.bold, fontSize: 17),
                             )),
                           ],
                           source: dataSource,
