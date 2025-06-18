@@ -3,6 +3,7 @@ import 'package:coop_agent/screens/salesPerson/PersonalAccidentCover.dart';
 import 'package:coop_agent/screens/salesPerson/CovernoteListScreen.dart';
 import 'package:coop_agent/screens/salesPerson/CreateCovernoteScreen.dart';
 import 'package:coop_agent/screens/login_screen.dart';
+import 'package:coop_agent/screens/salesPerson/ResetPasswordScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -63,21 +64,44 @@ class _HomescreenState extends State<Homescreen> {
           padding: EdgeInsets.zero,
           children: [
             const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blue),
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
               child: Text(
                 'Menu',
-                style: TextStyle(color: Colors.white, fontSize: 24),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                ),
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.note_add),
-              title: const Text('Create Covernote'),
+              leading: const Icon(
+                Icons.note_add,
+                size: 28,
+              ),
+              title: const Text(
+                'Create Covernote',
+                style: TextStyle(
+                  fontSize: 17.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               onTap: () =>
                   _setScreen(const CreateCovernoteScreen(), "Create Covernote"),
             ),
             ListTile(
-              leading: const Icon(Icons.list_alt_outlined),
-              title: const Text('Covernote List'),
+              leading: const Icon(
+                Icons.list_alt_outlined,
+                size: 28,
+              ),
+              title: const Text(
+                'Covernote List',
+                style: TextStyle(
+                  fontSize: 17.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               onTap: () =>
                   _setScreen(const CovernoteListScreen(), "Covernote List"),
             ),
@@ -89,16 +113,48 @@ class _HomescreenState extends State<Homescreen> {
             // ),
             if (_isCoopCityUser) // ✅ Only show if user is CoopCityUser
               ListTile(
-                leading: const Icon(Icons.edit_document),
-                title: const Text('Personal Accident Cover'),
+                leading: const Icon(
+                  Icons.edit_document,
+                  size: 28,
+                ),
+                title: const Text(
+                  'Personal Accident Cover',
+                  style: TextStyle(
+                    fontSize: 17.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 onTap: () => _setScreen(
                     const PersonalAccidentCover(), "Personal Accident Cover"),
               ),
             ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
+              leading: const Icon(
+                Icons.key_outlined,
+                size: 28,
+              ),
+              title: const Text(
+                'Reset Password',
+                style: TextStyle(
+                  fontSize: 17.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              onTap: () =>
+                  _setScreen(const ResetPasswordScreen(), "Reset Password"),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.logout,
+                color: Colors.red,
+                size: 28,
+              ),
               title: const Text(
                 'Logout',
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 17.5,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               onTap: () => _logout(context),
             ),

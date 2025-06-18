@@ -22,6 +22,10 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   // Controllers
   final TextEditingController _nicController = TextEditingController();
   final TextEditingController _passportController = TextEditingController();
+  final TextEditingController _businessRegisterNoController =
+      TextEditingController();
+  final TextEditingController _vatRegisterNoController =
+      TextEditingController();
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _telephoneController = TextEditingController();
@@ -91,6 +95,22 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   Future<void> _pickFiles(bool isIdDoc) async {
     final List<XFile>? pickedFiles = await ImagePicker().pickMultiImage();
     if (pickedFiles != null && pickedFiles.isNotEmpty) {
+      for (XFile file in pickedFiles) {
+        final imageFile = File(file.path);
+        final fileSize = imageFile.lengthSync(); // in bytes
+
+        if (fileSize > 2 * 1024 * 1024) {
+          // 2 MB = 2 * 1024 * 1024 bytes
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('This document exceeds maximum permitted size!'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return; // Stop further processing if any file is too large
+        }
+      }
+
       setState(() {
         if (isIdDoc) {
           _idDocImages.addAll(pickedFiles.map((file) => File(file.path)));
@@ -147,6 +167,22 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   Future<void> _pickRegistrationFiles() async {
     final List<XFile>? pickedFiles = await ImagePicker().pickMultiImage();
     if (pickedFiles != null && pickedFiles.isNotEmpty) {
+      for (XFile file in pickedFiles) {
+        final imageFile = File(file.path);
+        final fileSize = imageFile.lengthSync(); // Size in bytes
+
+        if (fileSize > 2 * 1024 * 1024) {
+          // 2 MB = 2 * 1024 * 1024 bytes
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('This document exceeds maximum permitted size!'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return; // Stop processing if any file is too large
+        }
+      }
+
       setState(() {
         _crImages.addAll(pickedFiles.map((file) => File(file.path)));
       });
@@ -492,9 +528,13 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
         "nicNo": _nicController.text.isNotEmpty ? _nicController.text : "",
         "passportNo":
             _passportController.text.isNotEmpty ? _passportController.text : "",
-        "bizRegNo": "",
+        "bizRegNo": _businessRegisterNoController.text.isNotEmpty
+            ? _businessRegisterNoController.text
+            : "",
         "idDocImage": false,
-        "vatRegNo": "",
+        "vatRegNo": _vatRegisterNoController.text.isNotEmpty
+            ? _vatRegisterNoController.text
+            : "",
         "telephoneNo": _telephoneController.text.isNotEmpty
             ? _telephoneController.text
             : "",
@@ -620,6 +660,8 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     // Clear controllers
     _nicController.clear();
     _passportController.clear();
+    _businessRegisterNoController.clear();
+    _vatRegisterNoController.clear();
     _fullNameController.clear();
     _addressController.clear();
     _telephoneController.clear();
@@ -631,7 +673,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     _validDaysController.text = "14";
 
     // Reset dropdown selections
-    _selectedCustomerType = 'Individual';
+    _selectedCustomerType = null;
     _selectedTitle = null;
     _selectedVehicleMake = null;
     _selectedVehicleMakeId = null;
@@ -640,7 +682,7 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
     _selectedVehicleType = null;
     _selectedInsuranceProduct = null;
     _selectedCoverLimit = 0;
-    _selectedPaymentMethod = 'CARD';
+    _selectedPaymentMethod = 'CASH';
     _selectedDocument = null;
     _selectedRegistrationDocument = null;
 
@@ -795,9 +837,10 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
                 ),
                 textField('Full Name', _fullNameController),
               ] else if (_selectedCustomerType == 'Corporate') ...[
-                textField('Business Register No', TextEditingController()),
-                textField('VAT Register No', TextEditingController()),
-                textField('Company Name', TextEditingController()),
+                textField(
+                    'Business Register No', _businessRegisterNoController),
+                textField('VAT Register No', _vatRegisterNoController),
+                textField('Company Name', _fullNameController),
               ],
               textField('Address', _addressController),
               textField(
@@ -1197,25 +1240,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   }
 
   // Dropdown Widget
-  // Widget dropdownField(String label, String? value, List<String> items,
-  //     Function(String?) onChanged,
-  //     {required bool isDisabled}) {
-  //   return Padding(
-  //     padding: const EdgeInsets.only(bottom: 10),
-  //     child: DropdownButtonFormField<String>(
-  //       value: value,
-  //       decoration:
-  //           InputDecoration(labelText: label, border: OutlineInputBorder()),
-  //       items: items
-  //           .map((item) => DropdownMenuItem(value: item, child: Text(item)))
-  //           .toList(),
-  //       onChanged: isDisabled ? null : onChanged, // Disable if needed
-  //       validator: (value) => value == null ? 'Please select $label' : null,
-  //       isExpanded: true,
-  //     ),
-  //   );
-  // }
-
   Widget dropdownField(
     String label,
     String? value,
@@ -1287,21 +1311,6 @@ class _CreateCovernoteScreenState extends State<CreateCovernoteScreen> {
   }
 
   //Service call textField widget
-  // Widget textFieldService(String label, TextEditingController controller,
-  //     {Function(String)? onChanged}) {
-  //   return Padding(
-  //     padding: const EdgeInsets.only(bottom: 10),
-  //     child: TextFormField(
-  //       controller: controller,
-  //       decoration:
-  //           InputDecoration(labelText: label, border: OutlineInputBorder()),
-  //       validator: (value) =>
-  //           value == null || value.isEmpty ? 'Enter $label' : null,
-  //       onChanged: onChanged,
-  //     ),
-  //   );
-  // }
-
   Widget textFieldService(
     String label,
     TextEditingController controller, {
