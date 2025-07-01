@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'package:coop_agent/services/config.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -9,6 +13,7 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
+
   final _usernameController = TextEditingController();
   final _oldPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
@@ -16,17 +21,74 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   bool _isLoading = false;
 
-  void _resetPassword() {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
+  @override
+  void initState() {
+    super.initState();
+    _loadUsername();
+  }
 
-      // Simulate API call
-      Future.delayed(Duration(seconds: 2), () {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✅ Password reset successful')),
-        );
+  Future<void> _loadUsername() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? username = prefs.getString('username');
+    if (username != null) {
+      setState(() {
+        _usernameController.text = username;
       });
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ No token found. Please login again.")),
+      );
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    final url = Uri.parse('${AppConfig.baseURL}/user/resetPassword');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token', // ✅ Token in header
+      },
+      body: jsonEncode({
+        "username": _usernameController.text.trim(),
+        "oldPassword": _oldPasswordController.text.trim(),
+        "newPassword": _newPasswordController.text.trim(),
+      }),
+    );
+
+    setState(() => _isLoading = false);
+
+    if (response.statusCode == 200) {
+      final result = jsonDecode(response.body);
+      if (result == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("✅ Password reset successfully")),
+        );
+        _formKey.currentState?.reset();
+        _oldPasswordController.clear();
+        _newPasswordController.clear();
+        _confirmPasswordController.clear();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("❌ Password reset failed")),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ Error: ${response.statusCode}")),
+      );
     }
   }
 
@@ -44,12 +106,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               ),
               TextFormField(
                 controller: _usernameController,
+                readOnly: true,
                 decoration: InputDecoration(
                   labelText: 'Username',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Enter username' : null,
               ),
               SizedBox(
                 height: 14,
@@ -78,8 +139,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 validator: (value) {
                   if (value == null || value.isEmpty)
                     return 'Enter new password';
-                  if (value.length < 6)
-                    return 'Password must be at least 6 characters';
+                  if (value.length < 3) return 'Minimum 3 characters';
                   return null;
                 },
               ),
@@ -103,7 +163,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               _isLoading
                   ? CircularProgressIndicator()
                   : ElevatedButton(
-                      onPressed: _resetPassword,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color.fromARGB(255, 180, 0, 0),
                         padding: EdgeInsets.symmetric(
@@ -111,6 +170,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           vertical: 15,
                         ),
                       ),
+                      onPressed: _resetPassword,
                       child: Text(
                         'Reset Password',
                         style: TextStyle(

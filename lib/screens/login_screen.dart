@@ -62,6 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
               'coopSociety', user.salesPersonDetails.coopSociety ?? '');
           await prefs.setString(
               'coopCity', user.salesPersonDetails.coopCity ?? '');
+          await prefs.setString('username', user.username);
 
           Navigator.pushReplacement(
             context,
@@ -120,6 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: Colors.black87,
                       ),
                     ),
+                    Text("version: 1.0.1"),
                     const SizedBox(height: 20),
                     Form(
                       key: _formKey,
