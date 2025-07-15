@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:coop_agent/services/config.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -72,55 +73,122 @@ class _UpdateScreenState extends State<UpdateScreen> {
   Future<void> _downloadAndInstallApk() async {
     setState(() {
       _isDownloading = true;
+      _progress = 0.0;
     });
 
-    const apkUrl =
-        "${AppConfig.baseURL}/user/downloadNewApk"; // Replace with your actual APK URL
-
     try {
-      // Step 1: Request permissions
+      // Step 1: Request all required permissions
       if (Platform.isAndroid) {
-        var status = await Permission.storage.request();
-        if (!status.isGranted) {
-          throw Exception("❌ Storage permission not granted");
+        // For Android 10 and below
+        var storageStatus = await Permission.storage.status;
+        if (!storageStatus.isGranted) {
+          storageStatus = await Permission.storage.request();
+        }
+
+        // For Android 11 and above (Scoped Storage)
+        var manageStorageStatus = await Permission.manageExternalStorage.status;
+        if (!manageStorageStatus.isGranted) {
+          manageStorageStatus =
+              await Permission.manageExternalStorage.request();
+        }
+
+        // For Android 8+ (APK installation)
+        var installPermissionStatus =
+            await Permission.requestInstallPackages.status;
+        if (!installPermissionStatus.isGranted) {
+          installPermissionStatus =
+              await Permission.requestInstallPackages.request();
+        }
+
+        // Check if all permissions were granted
+        if (!storageStatus.isGranted ||
+            !manageStorageStatus.isGranted ||
+            !installPermissionStatus.isGranted) {
+          throw Exception("Required permissions not granted:\n"
+              "- Storage: ${storageStatus.isGranted ? 'Granted' : 'Denied'}\n"
+              "- Manage External Storage: ${manageStorageStatus.isGranted ? 'Granted' : 'Denied'}\n"
+              "- Install Packages: ${installPermissionStatus.isGranted ? 'Granted' : 'Denied'}");
         }
       }
 
-      // Step 2: Get download directory
-      final directory = Directory('/storage/emulated/0/Download');
-      if (directory == null) throw Exception("❌ Cannot get download directory");
+      // Step 2: Get the best available download directory
+      Directory directory;
+      if (Platform.isAndroid) {
+        // Try external downloads directory first
+        directory = Directory('/storage/emulated/0/Download');
+
+        // Fallback to getExternalStorageDirectory if needed
+        if (!await directory.exists()) {
+          final extDir = await getExternalStorageDirectory();
+          if (extDir != null) {
+            directory = extDir;
+          } else {
+            // Final fallback to app's documents directory
+            directory = await getApplicationDocumentsDirectory();
+          }
+        }
+      } else {
+        // For iOS (though this is an APK download, so might not be needed)
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
 
       final filePath = '${directory.path}/coop_agent.apk';
-      final dio = Dio();
+      final apkFile = File(filePath);
 
-      // Step 3: Start download
+      // Step 3: Delete existing APK if present
+      if (await apkFile.exists()) {
+        try {
+          await apkFile.delete();
+          debugPrint("✅ Existing APK deleted");
+        } catch (e) {
+          debugPrint("⚠️ File exists but couldn't be deleted: $e");
+          // Continue with download even if deletion fails
+        }
+      }
+
+      // Step 4: Download new APK
+      final dio = Dio();
       await dio.download(
         apkUrl,
         filePath,
         onReceiveProgress: (received, total) {
-          if (total != -1) {
+          if (total != -1 && context.mounted) {
             setState(() {
               _progress = received / total;
             });
           }
         },
+        deleteOnError: true, // Auto-delete if download fails
       );
 
-      setState(() => _isDownloading = false);
-
-      if (Theme.of(context).platform == TargetPlatform.android) {
-        if (!await Permission.requestInstallPackages.isGranted) {
-          await Permission.requestInstallPackages.request();
-        }
+      if (context.mounted) {
+        setState(() => _isDownloading = false);
       }
 
-      await OpenFile.open(filePath);
+      // Step 5: Install the APK
+      final result = await OpenFile.open(filePath);
+      if (result.type != ResultType.done) {
+        throw Exception("Failed to open installer: ${result.message}");
+      }
     } catch (e) {
-      setState(() => _isDownloading = false);
+      if (context.mounted) {
+        setState(() {
+          _isDownloading = false;
+          _progress = 0.0;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${e.toString()}"),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
       debugPrint("❌ Download/install failed: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Error: $e")),
-      );
+      rethrow;
     }
   }
 

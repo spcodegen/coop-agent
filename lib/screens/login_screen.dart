@@ -121,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: Colors.black87,
                       ),
                     ),
-                    Text("version: 1.0.1"),
+                    Text("Version: 1.0.1"),
                     const SizedBox(height: 20),
                     Form(
                       key: _formKey,
