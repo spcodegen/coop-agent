@@ -50,6 +50,18 @@ class _LoginScreenState extends State<LoginScreen> {
         String token = data['token'];
         UserModel user = UserModel.fromJson(data['user']);
 
+        // ✅ Check if user has "USER" role
+        final roles = data['user']['roles'] as List<dynamic>;
+        bool hasUserRole = roles.any((role) => role['name'] == 'SALES_OFFICER');
+
+        if (!hasUserRole) {
+          setState(() {
+            _errorMessage =
+                "Access denied: Only SALES_OFFICER role is allowed.";
+          });
+          return;
+        }
+
         if (token.isNotEmpty) {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setString('token', token);
@@ -121,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: Colors.black87,
                       ),
                     ),
-                    Text("Version: 1.0.1"),
+                    Text("Version: 1.0.2"),
                     const SizedBox(height: 20),
                     Form(
                       key: _formKey,
